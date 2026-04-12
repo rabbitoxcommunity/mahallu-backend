@@ -12,5 +12,7 @@ app.use(express.json());
 
 app.use("/api/auth", require("./routes/authRoutes"));
 app.use("/api/family", require("./routes/familyRoutes"));
+app.use("/api/house", require("./routes/houseRoutes"));
+app.use("/api/member", require("./routes/memberRoutes"));
 
 app.listen(5005, () => console.log("Server running on port 5005"));
