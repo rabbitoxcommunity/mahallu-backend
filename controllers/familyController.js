@@ -24,7 +24,7 @@ exports.createFamily = async (req, res) => {
 exports.getFamilies = async (req, res) => {
     const families = await Family.find({
         tenant_id: req.user.tenant_id,
-        is_active: true,
+        // is_active: true,
     });
 
     res.json(families);
