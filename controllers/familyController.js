@@ -22,10 +22,35 @@ exports.createFamily = async (req, res) => {
 };
 
 exports.getFamilies = async (req, res) => {
-    const families = await Family.find({
-        tenant_id: req.user.tenant_id,
-        // is_active: true,
-    });
+    try {
+        const { page = 1, limit = 10, search = "" } = req.query;
+        const skip = (page - 1) * limit;
 
-    res.json(families);
+        const query = {
+            tenant_id: req.user.tenant_id,
+        };
+
+        if (search) {
+            query.$or = [
+                { family_name: { $regex: search, $options: "i" } },
+                { family_code: { $regex: search, $options: "i" } },
+            ];
+        }
+
+        const families = await Family.find(query)
+            .sort({ createdAt: -1 })
+            .skip(Number(skip))
+            .limit(Number(limit));
+
+        const total = await Family.countDocuments(query);
+
+        res.json({
+            families,
+            total,
+            page: Number(page),
+            pages: Math.ceil(total / limit),
+        });
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
 };

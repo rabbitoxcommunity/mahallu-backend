@@ -15,11 +15,33 @@ exports.addMember = async (req, res) => {
 };
 
 exports.getMembersByHouse = async (req, res) => {
-    const members = await Member.find({
-        house_id: req.params.houseId,
-        tenant_id: req.user.tenant_id,
-        is_active: true,
-    });
+    try {
+        const { page = 1, limit = 10, search = "" } = req.query;
+        const skip = (page - 1) * limit;
 
-    res.json(members);
+        const query = {
+            house_id: req.params.houseId,
+            tenant_id: req.user.tenant_id,
+        };
+
+        if (search) {
+            query.full_name = { $regex: search, $options: "i" };
+        }
+
+        const members = await Member.find(query)
+            .sort({ is_family_head: -1, createdAt: 1 })
+            .skip(Number(skip))
+            .limit(Number(limit));
+
+        const total = await Member.countDocuments(query);
+
+        res.json({
+            members,
+            total,
+            page: Number(page),
+            pages: Math.ceil(total / limit),
+        });
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
 };
