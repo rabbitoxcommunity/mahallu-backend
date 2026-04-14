@@ -14,6 +14,47 @@ exports.addMember = async (req, res) => {
     }
 };
 
+exports.getAllMembers = async (req, res) => {
+    try {
+        const { page = 1, limit = 10, search = "", blood_group = "" } = req.query;
+        const skip = (page - 1) * limit;
+
+        const query = {
+            tenant_id: req.user.tenant_id,
+        };
+
+        if (search) {
+            query.$or = [
+                { full_name: { $regex: search, $options: "i" } },
+                { whatsapp: { $regex: search, $options: "i" } },
+                { blood_group: { $regex: search, $options: "i" } },
+            ];
+        }
+
+        if (blood_group) {
+            query.blood_group = blood_group;
+        }
+
+        const members = await Member.find(query)
+            .populate("house_id", "house_code householder_name")
+            .sort({ full_name: 1 })
+            .skip(Number(skip))
+            .limit(Number(limit));
+
+        const total = await Member.countDocuments(query);
+
+        res.json({
+            members,
+            total,
+            page: Number(page),
+            limit: Number(limit),
+            pages: Math.ceil(total / limit),
+        });
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
+};
+
 exports.getMembersByHouse = async (req, res) => {
     try {
         const { page = 1, limit = 10, search = "" } = req.query;

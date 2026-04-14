@@ -22,7 +22,7 @@ const HouseSchema = new mongoose.Schema(
             trim: true,
         },
 
-        house_name: {
+        householder_name: {
             type: String,
             required: true,
             trim: true,

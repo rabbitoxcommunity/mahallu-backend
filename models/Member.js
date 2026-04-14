@@ -65,4 +65,9 @@ const MemberSchema = new mongoose.Schema(
     { timestamps: true }
 );
 
+MemberSchema.index({ tenant_id: 1 });
+MemberSchema.index({ full_name: 1 });
+MemberSchema.index({ whatsapp: 1 });
+MemberSchema.index({ blood_group: 1 });
+
 module.exports = mongoose.model("Member", MemberSchema);

@@ -32,7 +32,7 @@ exports.getHouses = async (req, res) => {
 
         if (search) {
             query.$or = [
-                { house_name: { $regex: search, $options: "i" } },
+                { householder_name: { $regex: search, $options: "i" } },
                 { house_code: { $regex: search, $options: "i" } },
             ];
         }
