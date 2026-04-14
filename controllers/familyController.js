@@ -54,3 +54,38 @@ exports.getFamilies = async (req, res) => {
         res.status(500).json({ message: err.message });
     }
 };
+
+exports.getFamilyById = async (req, res) => {
+    try {
+        const family = await Family.findOne({
+            _id: req.params.id,
+            tenant_id: req.user.tenant_id,
+        });
+
+        if (!family) {
+            return res.status(404).json({ message: "Family not found" });
+        }
+
+        res.json(family);
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
+};
+
+exports.updateFamily = async (req, res) => {
+    try {
+        const family = await Family.findOneAndUpdate(
+            { _id: req.params.id, tenant_id: req.user.tenant_id },
+            { $set: req.body },
+            { new: true }
+        );
+
+        if (!family) {
+            return res.status(404).json({ message: "Family not found" });
+        }
+
+        res.json(family);
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
+};

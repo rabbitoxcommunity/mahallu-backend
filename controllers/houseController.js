@@ -64,3 +64,21 @@ exports.getHouseById = async (req, res) => {
 
     res.json(house);
 };
+
+exports.updateHouse = async (req, res) => {
+    try {
+        const house = await House.findOneAndUpdate(
+            { _id: req.params.id, tenant_id: req.user.tenant_id },
+            { $set: req.body },
+            { new: true }
+        ).populate("family_id");
+
+        if (!house) {
+            return res.status(404).json({ message: "House not found" });
+        }
+
+        res.json(house);
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
+};
