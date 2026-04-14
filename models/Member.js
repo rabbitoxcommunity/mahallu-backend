@@ -29,7 +29,7 @@ const MemberSchema = new mongoose.Schema(
         relation_to_head: String,
 
         whatsapp: String,
-        email: String,
+        contact_number: String,
 
         yateem_status: {
             type: Boolean,
