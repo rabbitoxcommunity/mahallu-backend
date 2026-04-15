@@ -7,11 +7,15 @@ const {
     updateUserPermissions,
     updateUserStatus,
     getUser,
+    getCurrentUser,
     updateUserRole
 } = require("../controllers/userController");
 
 // Create tenant user - superAdmin or platformAdmin only
 router.post("/create", auth, role("superAdmin", "platformAdmin"), createUser);
+
+// Get current user details - authenticated users only
+router.get("/me", auth, getCurrentUser);
 
 // Get all users of current tenant - authenticated users only
 router.get("/", auth, getTenantUsers);

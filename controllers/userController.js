@@ -228,6 +228,38 @@ exports.updateUserStatus = async (req, res) => {
     }
 };
 
+// Get current user details
+exports.getCurrentUser = async (req, res) => {
+    try {
+        const user = await User.findById(req.user.id).select("-password");
+
+        if (!user) {
+            return res.status(404).json({
+                message: "User not found"
+            });
+        }
+
+        res.json({
+            user: {
+                id: user._id,
+                name: user.name,
+                email: user.email,
+                role: user.role,
+                tenant_id: user.tenant_id,
+                permissions: user.permissions,
+                is_active: user.is_active,
+                createdAt: user.createdAt,
+                updatedAt: user.updatedAt
+            }
+        });
+    } catch (error) {
+        console.error("Get current user error:", error);
+        res.status(500).json({
+            message: "Internal server error"
+        });
+    }
+};
+
 // Get single user details
 exports.getUser = async (req, res) => {
     try {
