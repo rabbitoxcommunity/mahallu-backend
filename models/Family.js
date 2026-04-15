@@ -36,4 +36,9 @@ FamilySchema.index(
     { unique: true }
 );
 
+FamilySchema.index(
+    { tenant_id: 1, family_name: 1 },
+    { unique: true }
+);
+
 module.exports = mongoose.model("Family", FamilySchema);

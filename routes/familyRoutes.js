@@ -6,8 +6,9 @@ const {
     getFamilyById,
     updateFamily,
 } = require("../controllers/familyController");
+const permitModule = require("../middleware/permitModule");
 
-router.post("/create", auth, createFamily);
+router.post("/create", auth, permitModule("family"), createFamily);
 router.get("/", auth, getFamilies);
 router.get("/:id", auth, getFamilyById);
 router.put("/:id", auth, updateFamily);

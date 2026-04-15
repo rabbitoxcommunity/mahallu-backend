@@ -1,26 +1,43 @@
 const Family = require("../models/Family");
+const generateSequence = require("../utils/generateSequence");
 
 exports.createFamily = async (req, res) => {
     try {
-        const count = await Family.countDocuments({
+        const existingFamily = await Family.findOne({
             tenant_id: req.user.tenant_id,
+            family_name: req.body.family_name,
         });
 
-        const familyCode = `MHL-${String(count + 1).padStart(3, "0")}`;
+        if (existingFamily) {
+            return res.status(400).json({
+                success: false,
+                message: "Family already exists",
+            });
+        }
+
+        const family_code = await generateSequence(
+            req.user.tenant_id,
+            "family"
+        );
 
         const family = await Family.create({
-            ...req.body,
             tenant_id: req.user.tenant_id,
-            family_code: familyCode,
+            family_name: req.body.family_name,
+            notes: req.body.notes,
+            family_code,
         });
 
-        res.status(201).json(family);
+        res.status(201).json({
+            success: true,
+            data: family,
+        });
 
     } catch (err) {
-        res.status(500).json({ message: err.message });
+        res.status(500).json({
+            message: err.message,
+        });
     }
 };
-
 exports.getFamilies = async (req, res) => {
     try {
         const { page = 1, limit = 10, search = "" } = req.query;

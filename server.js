@@ -11,6 +11,7 @@ app.use(cors());
 app.use(express.json());
 
 app.use("/api/auth", require("./routes/authRoutes"));
+app.use("/api/tenants", require("./routes/tenantRoutes"));
 app.use("/api/family", require("./routes/familyRoutes"));
 app.use("/api/house", require("./routes/houseRoutes"));
 app.use("/api/member", require("./routes/memberRoutes"));

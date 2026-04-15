@@ -1,11 +1,63 @@
 const mongoose = require("mongoose");
 
-const UserSchema = new mongoose.Schema({
-    name: String,
-    email: { type: String, unique: true },
-    password: String,
-    role: String,
-    tenant_id: mongoose.Schema.Types.ObjectId
-}, { timestamps: true });
+const UserSchema = new mongoose.Schema(
+    {
+        tenant_id: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "Tenant",
+            required: function () {
+                return this.role !== "platformAdmin";
+            },
+            index: true,
+        },
+
+        name: {
+            type: String,
+            required: true,
+            trim: true,
+        },
+
+        email: {
+            type: String,
+            required: true,
+            trim: true,
+        },
+
+        password: {
+            type: String,
+            required: true,
+        },
+
+        role: {
+            type: String,
+            enum: [
+                "platformAdmin",
+                "superAdmin",
+                "admin",
+                "user",
+            ],
+            required: true,
+        },
+
+        permissions: {
+            family: { type: Boolean, default: false },
+            payments: { type: Boolean, default: false },
+            campaigns: { type: Boolean, default: false },
+            reports: { type: Boolean, default: false },
+            settings: { type: Boolean, default: false },
+        },
+
+        is_active: {
+            type: Boolean,
+            default: true,
+        },
+    },
+    { timestamps: true }
+);
+
+UserSchema.index(
+    { tenant_id: 1, email: 1 },
+    { unique: true }
+);
 
 module.exports = mongoose.model("User", UserSchema);

@@ -10,37 +10,19 @@ const seedUser = async () => {
         await mongoose.connect(process.env.MONGO_URI);
         console.log("MongoDB connected");
 
-        // Define user data here
+        // Define platform admin data here
         const userData = {
-            name: "Admin User",
-            email: "superadmin@mail.com",
+            name: "Platform Admin",
+            email: "platformadmin@mail.com",
             password: "12345678",
-            role: "superAdmin",
-            // tenant_id: new mongoose.Types.ObjectId() // Optional
+            role: "platformAdmin",
+            // tenant_id: null for platform admin
         };
 
-        // Ensure a default tenant exists
-        const Tenant = require("./models/Tenant");
-        let tenant = await Tenant.findOne({ code: "DFLT" });
-        if (!tenant) {
-            tenant = await Tenant.create({
-                name: "Default Mahallu",
-                code: "DFLT"
-            });
-            console.log("Default tenant created");
-        }
-
-        // Check if user already exists
+        // Check if platform admin already exists
         const existingUser = await User.findOne({ email: userData.email });
         if (existingUser) {
-            // Update existing user with tenant_id if missing
-            if (!existingUser.tenant_id) {
-                existingUser.tenant_id = tenant._id;
-                await existingUser.save();
-                console.log("Updated existing user with default tenant_id");
-            } else {
-                console.log("User already exists with tenant_id");
-            }
+            console.log("Platform admin already exists");
             process.exit(0);
         }
 
@@ -48,18 +30,17 @@ const seedUser = async () => {
         const salt = await bcrypt.genSalt(10);
         const hashedPassword = await bcrypt.hash(userData.password, salt);
 
-        // Create user
+        // Create platform admin user (no tenant_id)
         const newUser = new User({
             ...userData,
-            password: hashedPassword,
-            tenant_id: tenant._id
+            password: hashedPassword
         });
 
         await newUser.save();
-        console.log("User created successfully:");
+        console.log("Platform admin created successfully:");
         console.log(`Email: ${userData.email}`);
         console.log(`Password: ${userData.password}`);
-        console.log(`Tenant ID: ${tenant._id}`);
+        console.log(`Role: ${userData.role}`);
 
         process.exit(0);
     } catch (err) {

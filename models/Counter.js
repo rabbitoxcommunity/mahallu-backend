@@ -7,12 +7,10 @@ const CounterSchema = new mongoose.Schema(
             required: true,
             index: true,
         },
-
         type: {
             type: String,
             required: true,
         },
-
         seq: {
             type: Number,
             default: 0,

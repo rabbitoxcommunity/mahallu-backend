@@ -1,11 +1,6 @@
 const Counter = require("../models/Counter");
 
-const generateSequence = async ({
-    tenantId,
-    type,
-    prefix = "FAM",
-    pad = 4,
-}) => {
+const generateSequence = async (tenantId, type, prefix = "MHL") => {
     const counter = await Counter.findOneAndUpdate(
         {
             tenant_id: tenantId,
@@ -20,7 +15,7 @@ const generateSequence = async ({
         }
     );
 
-    return `${prefix}-${String(counter.seq).padStart(pad, "0")}`;
+    return `${prefix}-${String(counter.seq).padStart(3, "0")}`;
 };
 
 module.exports = generateSequence;

@@ -7,15 +7,17 @@ const TenantSchema = new mongoose.Schema(
             required: true,
             trim: true,
         },
-        code: {
+        slug: {
             type: String,
             required: true,
             unique: true,
             trim: true,
+            lowercase: true,
         },
-        is_active: {
-            type: Boolean,
-            default: true,
+        status: {
+            type: String,
+            enum: ["active", "suspended"],
+            default: "active",
         },
     },
     { timestamps: true }
