@@ -17,5 +17,6 @@ app.use("/api/family", require("./routes/familyRoutes"));
 app.use("/api/house", require("./routes/houseRoutes"));
 app.use("/api/member", require("./routes/memberRoutes"));
 app.use("/api/finance/varisankhya", require("./routes/varisankhyaRoutes"));
+app.use("/api/finance/income", require("./routes/incomeRoutes"));
 
 app.listen(5005, () => console.log("Server running on port 5005"));
