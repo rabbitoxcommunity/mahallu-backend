@@ -67,10 +67,8 @@ exports.createTenant = async (req, res) => {
             role: "superAdmin",
             permissions: {
                 family: true,
-                payments: true,
-                campaigns: true,
-                reports: true,
-                settings: true
+                dashboard: true,
+                finance: true
             }
         });
 

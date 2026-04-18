@@ -32,10 +32,8 @@ exports.createUser = async (req, res) => {
         // Set default permissions if not provided
         const defaultPermissions = {
             family: false,
-            payments: false,
-            campaigns: false,
-            reports: false,
-            settings: false,
+            dashboard: false,
+            finance: false,
             ...permissions
         };
 
@@ -147,10 +145,8 @@ exports.updateUserPermissions = async (req, res) => {
         // Update permissions
         user.permissions = {
             family: permissions.family || false,
-            payments: permissions.payments || false,
-            campaigns: permissions.campaigns || false,
-            reports: permissions.reports || false,
-            settings: permissions.settings || false
+            dashboard: permissions.dashboard || false,
+            finance: permissions.finance || false
         };
 
         await user.save();

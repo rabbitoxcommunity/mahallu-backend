@@ -41,10 +41,8 @@ const UserSchema = new mongoose.Schema(
 
         permissions: {
             family: { type: Boolean, default: false },
-            payments: { type: Boolean, default: false },
-            campaigns: { type: Boolean, default: false },
-            reports: { type: Boolean, default: false },
-            settings: { type: Boolean, default: false },
+            dashboard: { type: Boolean, default: false },
+            finance: { type: Boolean, default: false },
         },
 
         is_active: {
