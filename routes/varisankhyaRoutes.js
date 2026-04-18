@@ -7,6 +7,7 @@ const {
     getDefaulters,
     getHousePaymentHistory,
     getPaymentHistory,
+    getDefaulterHistory,
 } = require("../controllers/varisankhyaController");
 
 // Generate monthly dues for all active houses
@@ -23,6 +24,9 @@ router.get("/defaulters", auth, getDefaulters);
 
 // Get house payment history
 router.get("/house/:houseId", auth, getHousePaymentHistory);
+
+// Get defaulter history for a house
+router.get("/defaulter/:houseId", auth, getDefaulterHistory);
 
 // Mark payment for a varisankhya record
 router.put("/pay/:id", auth, markPayment);

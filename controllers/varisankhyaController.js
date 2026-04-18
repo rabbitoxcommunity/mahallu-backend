@@ -470,6 +470,129 @@ exports.getHousePaymentHistory = async (req, res) => {
     }
 };
 
+// @desc    Get defaulter history for a specific house
+// @route   GET /api/finance/varisankhya/defaulter/:houseId
+// @access  Private
+exports.getDefaulterHistory = async (req, res) => {
+    try {
+        const { houseId } = req.params;
+        const { page = 1, limit = 20, year } = req.query;
+        const tenant_id = req.user.tenant_id;
+
+        const skip = (Number(page) - 1) * Number(limit);
+
+        // Verify house belongs to tenant
+        const house = await House.findOne({
+            _id: houseId,
+            tenant_id,
+        });
+
+        if (!house) {
+            return res.status(404).json({ message: "House not found" });
+        }
+
+        // Build query
+        let query = {
+            tenant_id,
+            house_id: houseId,
+            status: { $in: ["unpaid", "partial"] },
+        };
+
+        if (year) {
+            query.year = Number(year);
+        }
+
+        const history = await Varisankhya.find(query)
+            .populate("received_by", "name")
+            .sort({ year: -1, month: -1 })
+            .skip(skip)
+            .limit(Number(limit));
+
+        const total = await Varisankhya.countDocuments(query);
+
+        // Calculate summary with year filter
+        let summaryMatchQuery = {
+            tenant_id: tenant_id,
+            house_id: houseId,
+            status: { $in: ["unpaid", "partial"] },
+            ...(year && { year: Number(year) }),
+        };
+
+        console.log('defaulter summaryMatchQuery:', JSON.stringify(summaryMatchQuery, null, 2));
+
+        const summary = await Varisankhya.aggregate([
+            { $match: summaryMatchQuery },
+            {
+                $group: {
+                    _id: null,
+                    total_due: { $sum: "$amount_due" },
+                    total_paid: { $sum: "$amount_paid" },
+                    pending_amount: { $sum: { $subtract: ["$amount_due", "$amount_paid"] } },
+                    payments_count: {
+                        $sum: { $cond: [{ $gt: ["$amount_paid", 0] }, 1, 0] },
+                    },
+                    pending_months_count: { $sum: 1 },
+                },
+            },
+        ]);
+
+        console.log('defaulter summary result:', summary);
+
+        // If summary is empty, try with ObjectId conversion
+        let summaryData = summary[0];
+        if (!summaryData) {
+            console.log('Retrying defaulter summary with ObjectId conversion...');
+            const summaryWithObjectId = await Varisankhya.aggregate([
+                {
+                    $match: {
+                        tenant_id: new mongoose.Types.ObjectId(tenant_id),
+                        house_id: new mongoose.Types.ObjectId(houseId),
+                        status: { $in: ["unpaid", "partial"] },
+                        ...(year && { year: Number(year) }),
+                    }
+                },
+                {
+                    $group: {
+                        _id: null,
+                        total_due: { $sum: "$amount_due" },
+                        total_paid: { $sum: "$amount_paid" },
+                        pending_amount: { $sum: { $subtract: ["$amount_due", "$amount_paid"] } },
+                        payments_count: {
+                            $sum: { $cond: [{ $gt: ["$amount_paid", 0] }, 1, 0] },
+                        },
+                        pending_months_count: { $sum: 1 },
+                    },
+                },
+            ]);
+            console.log('defaulter summaryWithObjectId result:', summaryWithObjectId);
+            summaryData = summaryWithObjectId[0];
+        }
+
+        res.json({
+            house: {
+                _id: house._id,
+                house_code: house.house_code,
+                householder_name: house.householder_name,
+                primary_contact: house.primary_contact,
+            },
+            history,
+            total,
+            page: Number(page),
+            pages: Math.ceil(total / Number(limit)),
+            summary: summaryData || { 
+                total_due: 0, 
+                total_paid: 0, 
+                pending_amount: 0, 
+                payments_count: 0, 
+                pending_months_count: 0 
+            },
+        });
+    } catch (err) {
+        console.error('getDefaulterHistory error:', err);
+        res.status(500).json({ message: err.message });
+    }
+};
+
 // @desc    Get payment history (all payments across all houses)
 // @route   GET /api/finance/varisankhya/payment-history
 // @access  Private
