@@ -450,36 +450,35 @@ exports.getPaymentHistory = async (req, res) => {
         const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
         const tomorrow = new Date(today);
         tomorrow.setDate(tomorrow.getDate() + 1);
+
+        console.log('Query:', JSON.stringify(query, null, 2));
+console.log('date_filter:', date_filter);
+console.log('from_date:', from_date);
+console.log('to_date:', to_date);
         
-        if (date_filter) {
-            switch (date_filter) {
-                case 'today':
-                    query.paid_date = { $gte: today, $lt: tomorrow };
-                    break;
-                case 'this_month':
-                    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-                    const startOfNextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
-                    query.paid_date = { $gte: startOfMonth, $lt: startOfNextMonth };
-                    break;
-                case 'last_month':
-                    const startOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-                    const startOfCurrentMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-                    query.paid_date = { $gte: startOfLastMonth, $lt: startOfCurrentMonth };
-                    break;
-                case 'this_year':
-                    const startOfYear = new Date(now.getFullYear(), 0, 1);
-                    const startOfNextYear = new Date(now.getFullYear() + 1, 0, 1);
-                    query.paid_date = { $gte: startOfYear, $lt: startOfNextYear };
-                    break;
-                default:
-                    break;
-            }
-        } else if (from_date || to_date) {
-            // Custom date range
-            query.paid_date = {};
-            if (from_date) query.paid_date.$gte = new Date(from_date);
-            if (to_date) query.paid_date.$lte = new Date(to_date);
+       if (date_filter) {
+    switch (date_filter) {
+       case 'custom':
+    if (from_date || to_date) {  // only set if at least one date exists
+        query.paid_date = {};
+        if (from_date) {
+            const fromDate = new Date(from_date);
+            fromDate.setHours(0, 0, 0, 0);
+            query.paid_date.$gte = fromDate;
         }
+        if (to_date) {
+            const toDate = new Date(to_date);
+            toDate.setHours(23, 59, 59, 999);
+            query.paid_date.$lte = toDate;
+        }
+    }
+    break;
+        // ...other cases
+    }
+}
+
+// Move this log to AFTER the switch block
+console.log('Final query after date filter:', JSON.stringify(query, null, 2));
 
         // If search is provided, filter by house details
         if (search) {
