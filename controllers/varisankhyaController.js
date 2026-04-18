@@ -388,28 +388,67 @@ exports.getHousePaymentHistory = async (req, res) => {
             query.year = Number(year);
         }
 
-        const history = await Varisankhya.find(query)
-            .populate("received_by", "name")
-            .sort({ year: -1, month: -1 })
-            .skip(skip)
-            .limit(Number(limit));
+        // Build summary match query — try string first, fallback to ObjectId
+        let summaryMatchQuery = {
+            tenant_id: tenant_id,
+            house_id: houseId,
+            ...(year && { year: Number(year) }),
+        };
 
-        const total = await Varisankhya.countDocuments(query);
+        console.log('summaryMatchQuery:', JSON.stringify(summaryMatchQuery, null, 2));
 
-        // Calculate summary
-        const summary = await Varisankhya.aggregate([
-            { $match: { tenant_id, house_id: new mongoose.Types.ObjectId(houseId) } },
-            {
-                $group: {
-                    _id: null,
-                    total_due: { $sum: "$amount_due" },
-                    total_paid: { $sum: "$amount_paid" },
-                    payments_count: {
-                        $sum: { $cond: [{ $gt: ["$amount_paid", 0] }, 1, 0] },
+        const [history, total, summary] = await Promise.all([
+            Varisankhya.find(query)
+                .populate("received_by", "name")
+                .sort({ year: -1, month: -1 })
+                .skip(skip)
+                .limit(Number(limit)),
+
+            Varisankhya.countDocuments(query),
+
+            Varisankhya.aggregate([
+                { $match: summaryMatchQuery },
+                {
+                    $group: {
+                        _id: null,
+                        total_due: { $sum: "$amount_due" },
+                        total_paid: { $sum: "$amount_paid" },
+                        payments_count: {
+                            $sum: { $cond: [{ $gt: ["$amount_paid", 0] }, 1, 0] },
+                        },
                     },
                 },
-            },
+            ]),
         ]);
+
+        console.log('summary result:', summary);
+
+        // If summary is empty, try with ObjectId conversion
+        let summaryData = summary[0];
+        if (!summaryData) {
+            console.log('Retrying summary with ObjectId conversion...');
+            const summaryWithObjectId = await Varisankhya.aggregate([
+                {
+                    $match: {
+                        tenant_id: new mongoose.Types.ObjectId(tenant_id),
+                        house_id: new mongoose.Types.ObjectId(houseId),
+                        ...(year && { year: Number(year) }),
+                    }
+                },
+                {
+                    $group: {
+                        _id: null,
+                        total_due: { $sum: "$amount_due" },
+                        total_paid: { $sum: "$amount_paid" },
+                        payments_count: {
+                            $sum: { $cond: [{ $gt: ["$amount_paid", 0] }, 1, 0] },
+                        },
+                    },
+                },
+            ]);
+            console.log('summaryWithObjectId result:', summaryWithObjectId);
+            summaryData = summaryWithObjectId[0];
+        }
 
         res.json({
             house: {
@@ -422,9 +461,11 @@ exports.getHousePaymentHistory = async (req, res) => {
             total,
             page: Number(page),
             pages: Math.ceil(total / Number(limit)),
-            summary: summary[0] || { total_due: 0, total_paid: 0, payments_count: 0 },
+            summary: summaryData || { total_due: 0, total_paid: 0, payments_count: 0 },
         });
+
     } catch (err) {
+        console.error('getHousePaymentHistory error:', err);
         res.status(500).json({ message: err.message });
     }
 };
