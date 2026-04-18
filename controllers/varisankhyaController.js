@@ -434,66 +434,114 @@ exports.getHousePaymentHistory = async (req, res) => {
 // @access  Private
 exports.getPaymentHistory = async (req, res) => {
     try {
-        const { page = 1, limit = 20, search = "", from_date, to_date, date_filter } = req.query;
+        // 1. Extract request params
+        const { page = 1, limit = 20, search = "", from_date, to_date, date_filter, year } = req.query;
+        
+        // 2. Extract user info
         const tenant_id = req.user.tenant_id;
 
+        // 3. Pagination
         const skip = (Number(page) - 1) * Number(limit);
 
-        // Build query - only records with payments
+        // 4. Date variables
+        const now = new Date();
+        const filterYear = year ? Number(year) : now.getFullYear();
+        const filterMonth = now.getMonth();
+        const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        const tomorrow = new Date(today);
+        tomorrow.setDate(tomorrow.getDate() + 1);
+
+        // 5. Build base query
         let query = {
             tenant_id,
             amount_paid: { $gt: 0 },
         };
 
-        // Date filter handling
-        const now = new Date();
-        const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-        const tomorrow = new Date(today);
-        tomorrow.setDate(tomorrow.getDate() + 1);
-
-        console.log('Query:', JSON.stringify(query, null, 2));
-console.log('date_filter:', date_filter);
-console.log('from_date:', from_date);
-console.log('to_date:', to_date);
-        
-       if (date_filter) {
-    switch (date_filter) {
-       case 'custom':
-    if (from_date || to_date) {  // only set if at least one date exists
-        query.paid_date = {};
-        if (from_date) {
-            const fromDate = new Date(from_date);
-            fromDate.setHours(0, 0, 0, 0);
-            query.paid_date.$gte = fromDate;
+        // 6. Apply date filter to query
+        if (year && !date_filter && !from_date && !to_date) {
+            // If only year is provided, filter by that year
+            query.paid_date = {
+                $gte: new Date(filterYear, 0, 1),
+                $lt: new Date(filterYear + 1, 0, 1),
+            };
+        } else if (date_filter) {
+            switch (date_filter) {
+                case 'today':
+                    query.paid_date = { $gte: today, $lt: tomorrow };
+                    break;
+                case 'this_month':
+                    query.paid_date = {
+                        $gte: new Date(filterYear, filterMonth, 1),
+                        $lt: new Date(filterYear, filterMonth + 1, 1),
+                    };
+                    break;
+                case 'last_month':
+                    query.paid_date = {
+                        $gte: new Date(filterYear, filterMonth - 1, 1),
+                        $lt: new Date(filterYear, filterMonth, 1),
+                    };
+                    break;
+                case 'this_year':
+                    query.paid_date = {
+                        $gte: new Date(filterYear, 0, 1),
+                        $lt: new Date(filterYear + 1, 0, 1),
+                    };
+                    break;
+                case 'custom':
+                    if (from_date || to_date) {
+                        query.paid_date = {};
+                        if (from_date) {
+                            const fromDate = new Date(from_date);
+                            fromDate.setHours(0, 0, 0, 0);
+                            query.paid_date.$gte = fromDate;
+                        }
+                        if (to_date) {
+                            const toDate = new Date(to_date);
+                            toDate.setHours(23, 59, 59, 999);
+                            query.paid_date.$lte = toDate;
+                        }
+                    }
+                    break;
+                default:
+                    break;
+            }
+        } else if (from_date || to_date) {
+            // Custom date range
+            query.paid_date = {};
+            if (from_date) {
+                const fromDate = new Date(from_date);
+                fromDate.setHours(0, 0, 0, 0);
+                query.paid_date.$gte = fromDate;
+            }
+            if (to_date) {
+                const toDate = new Date(to_date);
+                toDate.setHours(23, 59, 59, 999);
+                query.paid_date.$lte = toDate;
+            }
         }
-        if (to_date) {
-            const toDate = new Date(to_date);
-            toDate.setHours(23, 59, 59, 999);
-            query.paid_date.$lte = toDate;
-        }
-    }
-    break;
-        // ...other cases
-    }
-}
 
-// Move this log to AFTER the switch block
-console.log('Final query after date filter:', JSON.stringify(query, null, 2));
-
-        // If search is provided, filter by house details
+        // 7. Apply search filter
         if (search) {
-            const houseQuery = {
+            const matchingHouses = await House.find({
                 tenant_id,
                 $or: [
                     { house_code: { $regex: search, $options: "i" } },
                     { householder_name: { $regex: search, $options: "i" } },
                 ],
-            };
-            const matchingHouses = await House.find(houseQuery).select("_id");
-            const houseIds = matchingHouses.map((h) => h._id);
-            query.house_id = { $in: houseIds };
+            }).select("_id");
+            query.house_id = { $in: matchingHouses.map((h) => h._id) };
         }
 
+        // 8. Run queries AFTER query object is fully built
+        const [total, allMatchingPayments] = await Promise.all([
+            Varisankhya.countDocuments(query),
+            Varisankhya.find(query).select("amount_paid"),
+        ]);
+
+        // 9. Calculate total collected
+        const totalCollected = allMatchingPayments.reduce((sum, p) => sum + (Number(p.amount_paid) || 0), 0);
+
+        // 10. Fetch paginated results
         const payments = await Varisankhya.find(query)
             .populate("house_id", "house_code householder_name primary_contact family_id")
             .populate("received_by", "name")
@@ -501,12 +549,12 @@ console.log('Final query after date filter:', JSON.stringify(query, null, 2));
             .skip(skip)
             .limit(Number(limit));
 
-        // Populate family details
+        // 11. Populate family details
+        const Family = require("../models/Family");
         const populatedPayments = await Promise.all(
             payments.map(async (record) => {
                 const recordObj = record.toObject();
-                if (recordObj.house_id && recordObj.house_id.family_id) {
-                    const Family = require("../models/Family");
+                if (recordObj.house_id?.family_id) {
                     const family = await Family.findById(recordObj.house_id.family_id).select("family_name");
                     recordObj.house_id.family_name = family?.family_name || "";
                 }
@@ -514,22 +562,17 @@ console.log('Final query after date filter:', JSON.stringify(query, null, 2));
             })
         );
 
-        const total = await Varisankhya.countDocuments(query);
-
-        // Calculate total collected in this query
-        const totalCollected = await Varisankhya.aggregate([
-            { $match: query },
-            { $group: { _id: null, total: { $sum: "$amount_paid" } } },
-        ]);
-
+        // 12. Send response
         res.json({
             payments: populatedPayments,
             total,
             page: Number(page),
             pages: Math.ceil(total / Number(limit)),
-            total_collected: totalCollected[0]?.total || 0,
+            total_collected: totalCollected,
         });
+
     } catch (err) {
+        console.error('getPaymentHistory error:', err);
         res.status(500).json({ message: err.message });
     }
 };
