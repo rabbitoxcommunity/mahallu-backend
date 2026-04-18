@@ -237,16 +237,34 @@ exports.markPayment = async (req, res) => {
             return res.status(404).json({ message: "Varisankhya record not found" });
         }
 
-        // Calculate new status
+        // Calculate cumulative payment
+        const previousPaid = varisankhya.amount_paid || 0;
+        const newTotalPaid = previousPaid + Number(amount_paid);
+        
+        // Validate overpayment
+        if (newTotalPaid > varisankhya.amount_due) {
+            return res.status(400).json({ 
+                message: "Payment exceeds due amount",
+                details: {
+                    amount_due: varisankhya.amount_due,
+                    previous_paid: previousPaid,
+                    new_payment: Number(amount_paid),
+                    total_after_payment: newTotalPaid,
+                    excess_amount: newTotalPaid - varisankhya.amount_due
+                }
+            });
+        }
+
+        // Calculate new status based on cumulative payment
         let status = "unpaid";
-        if (Number(amount_paid) >= varisankhya.amount_due) {
+        if (newTotalPaid >= varisankhya.amount_due) {
             status = "paid";
-        } else if (Number(amount_paid) > 0) {
+        } else if (newTotalPaid > 0) {
             status = "partial";
         }
 
-        // Update record
-        varisankhya.amount_paid = Number(amount_paid);
+        // Update record with cumulative payment
+        varisankhya.amount_paid = newTotalPaid;
         varisankhya.status = status;
         varisankhya.payment_method = payment_method || (Number(amount_paid) > 0 ? "cash" : null);
         varisankhya.received_by = received_by;
@@ -275,9 +293,21 @@ exports.markPayment = async (req, res) => {
             recordObj.house_id.family_name = family?.family_name || "";
         }
 
+        // Calculate remaining amount for response
+        const remainingAmount = varisankhya.amount_due - varisankhya.amount_paid;
+
         res.json({
             message: "Payment recorded successfully",
             varisankhya: recordObj,
+            payment_details: {
+                this_payment: Number(amount_paid),
+                previous_paid: previousPaid,
+                total_paid: newTotalPaid,
+                amount_due: varisankhya.amount_due,
+                remaining_amount: remainingAmount,
+                status: status,
+                payment_date: varisankhya.paid_date
+            }
         });
     } catch (err) {
         res.status(500).json({ message: err.message });
@@ -337,6 +367,9 @@ exports.getDefaulters = async (req, res) => {
             pending_amount: d.total_due - d.total_paid,
             pending_months_count: d.pending_months.length,
         }));
+
+        // Filter out houses with 0 pending amount (fully paid)
+        defaultersList = defaultersList.filter(d => d.pending_amount > 0);
 
         // Sort by pending amount (highest first)
         defaultersList.sort((a, b) => b.pending_amount - a.pending_amount);
