@@ -1,3 +1,4 @@
+const mongoose = require('mongoose');
 const DueBasedIncome = require('../models/DueBasedIncome');
 const DirectIncome = require('../models/DirectIncome');
 const IncomePayment = require('../models/IncomePayment');
@@ -15,6 +16,9 @@ exports.createDueIncome = async (req, res, next) => {
 
         const { category, source_name, month, year, amount_due, due_date, notes } = req.body;
 
+        console.log('Create Due Income - Request Body:', req.body);
+        console.log('Create Due Income - Amount Due:', amount_due, 'Type:', typeof amount_due);
+        
         if (!category || !source_name || !month || !year || !amount_due || !due_date) {
             return res.status(400).json({ message: 'Missing required fields' });
         }
@@ -29,6 +33,7 @@ exports.createDueIncome = async (req, res, next) => {
         const amount_paid = 0;
         const balance = amount_due - amount_paid;
         
+                
         let status = 'unpaid';
         if (balance <= 0) {
             status = 'paid';
@@ -59,6 +64,7 @@ exports.createDueIncome = async (req, res, next) => {
 
         await income.save();
 
+        
         res.status(201).json({ message: 'Due-based income created successfully', income });
     } catch (err) {
         console.error('Error creating due income:', err);
@@ -220,7 +226,25 @@ exports.markDuePayment = async (req, res, next) => {
 
         await payment.save();
 
+        // Calculate new balance
+        const newBalance = income.amount_due - newTotalPaid;
+        
+        // Update status based on new balance
+        let newStatus = 'unpaid';
+        if (newBalance <= 0) {
+            newStatus = 'paid';
+        } else if (newTotalPaid > 0) {
+            newStatus = 'partial';
+        }
+        
+        // Check for overdue status
+        if (newStatus !== 'paid' && new Date(income.due_date) < new Date()) {
+            newStatus = 'overdue';
+        }
+
         income.amount_paid = newTotalPaid;
+        income.balance = newBalance;
+        income.status = newStatus;
         income.payment_method = payment_method || 'cash';
         income.receipt_no = receipt_no;
         await income.save();
@@ -234,8 +258,8 @@ exports.markDuePayment = async (req, res, next) => {
                 previous_paid: previousPaid,
                 total_paid: newTotalPaid,
                 amount_due: income.amount_due,
-                remaining_amount: income.balance,
-                status: income.status
+                remaining_amount: newBalance,
+                status: newStatus
             }
         });
     } catch (err) {
@@ -286,6 +310,9 @@ exports.createDirectIncome = async (req, res, next) => {
 
         const { category, source_name, amount, date, payment_method, reference_no, description } = req.body;
 
+        console.log('Direct Income - Raw Request Body:', req.body);
+        console.log('Direct Income - Parsed Amount:', amount, 'Type:', typeof amount);
+        
         if (!category || !source_name || !amount) {
             return res.status(400).json({ message: 'Missing required fields' });
         }
@@ -297,18 +324,32 @@ exports.createDirectIncome = async (req, res, next) => {
         const income_code = await generateDirectIncomeCode(tenant_id);
         const receipt_no = await generateReceiptNo(tenant_id);
 
+        const parsedAmount = Number(amount);
+        console.log('Direct Income - Raw Amount:', amount, 'Type:', typeof amount);
+        console.log('Direct Income - Parsed Amount:', parsedAmount, 'Type:', typeof parsedAmount);
+        
+        // Validate the parsed amount
+        if (isNaN(parsedAmount)) {
+            return res.status(400).json({ message: 'Invalid amount format' });
+        }
+
         const income = new DirectIncome({
             tenant_id,
             income_code,
             category,
             source_name,
-            amount: Number(amount),
+            amount: parsedAmount,
             date: date ? new Date(date) : new Date(),
             payment_method: payment_method || 'cash',
             reference_no: reference_no || '',
             description: description || '',
             receipt_no,
             created_by
+        });
+
+        console.log('Direct Income - Before Save:', {
+            amount_field: income.amount,
+            amount_type: typeof income.amount
         });
 
         await income.save();
@@ -443,7 +484,10 @@ exports.getIncomeSummary = async (req, res, next) => {
         const currentMonth = month ? Number(month) : now.getMonth() + 1;
 
         // Due-based income summary
-        const dueQuery = { tenant_id, is_active: true };
+        const dueQuery = { 
+            tenant_id: new mongoose.Types.ObjectId(tenant_id), 
+            is_active: true 
+        };
         if (year) dueQuery.year = currentYear;
         if (month) dueQuery.month = currentMonth;
 
@@ -464,18 +508,28 @@ exports.getIncomeSummary = async (req, res, next) => {
         ]);
 
         // Direct income summary
-        const directQuery = { tenant_id, is_active: true };
+        const directQuery = { 
+            tenant_id: new mongoose.Types.ObjectId(tenant_id), 
+            is_active: true 
+        };
         if (year || month) {
             const dateQuery = {};
-            if (year) {
+            if (year && month) {
+                // Filter by specific year and month
+                const startDate = new Date(currentYear, currentMonth - 1, 1);
+                const endDate = new Date(currentYear, currentMonth, 1);
+                dateQuery.$gte = startDate;
+                dateQuery.$lt = endDate;
+            } else if (year) {
+                // Filter by entire year
                 const startDate = new Date(currentYear, 0, 1);
                 const endDate = new Date(currentYear + 1, 0, 1);
                 dateQuery.$gte = startDate;
                 dateQuery.$lt = endDate;
-            }
-            if (month) {
-                const startDate = new Date(currentYear, currentMonth - 1, 1);
-                const endDate = new Date(currentYear, currentMonth, 1);
+            } else if (month) {
+                // Filter by month for current year
+                const startDate = new Date(now.getFullYear(), currentMonth - 1, 1);
+                const endDate = new Date(now.getFullYear(), currentMonth, 1);
                 dateQuery.$gte = startDate;
                 dateQuery.$lt = endDate;
             }
