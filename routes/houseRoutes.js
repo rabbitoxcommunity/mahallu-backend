@@ -6,9 +6,11 @@ const {
     getHouseById,
     updateHouse,
 } = require("../controllers/houseController");
+const { searchHouses } = require("../controllers/hadiyaController");
 
 router.post("/create", auth, createHouse);
 router.get("/", auth, getHouses);
+router.get("/search", auth, searchHouses);
 router.get("/:id", auth, getHouseById);
 router.put("/:id", auth, updateHouse);
 
