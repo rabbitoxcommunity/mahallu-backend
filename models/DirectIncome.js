@@ -15,7 +15,6 @@ const directIncomeSchema = new mongoose.Schema({
     },
     category: {
         type: String,
-        enum: ['donation', 'misc_income', 'event_income', 'charity_box', 'other'],
         required: true,
         index: true
     },

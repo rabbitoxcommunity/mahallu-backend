@@ -15,7 +15,6 @@ const dueBasedIncomeSchema = new mongoose.Schema({
     },
     category: {
         type: String,
-        enum: ['building_rent', 'shop_rent', 'coconut_sale', 'hall_rent', 'other'],
         required: true,
         index: true
     },

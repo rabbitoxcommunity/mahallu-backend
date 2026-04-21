@@ -3,6 +3,7 @@ const bcrypt = require("bcryptjs");
 const dotenv = require("dotenv");
 const User = require("./models/User");
 const Tenant = require("./models/Tenant");
+const IncomeCategory = require("./models/IncomeCategory");
 
 dotenv.config();
 
@@ -67,6 +68,31 @@ const seedTestData = async () => {
             });
             await superAdmin.save();
             console.log("Test superAdmin created");
+        }
+
+        // Clear ALL income categories from database (all tenants)
+        await IncomeCategory.deleteMany({});
+        console.log("Cleared ALL income categories from database");
+
+        // Drop legacy indexes if they exist
+        try {
+            await IncomeCategory.collection.dropIndex('category_code_1');
+            console.log("Dropped legacy category_code index");
+        } catch (err) {
+            // Index doesn't exist, that's fine
+            if (err.code !== 27) {
+                console.log("Note: category_code index doesn't exist or already removed");
+            }
+        }
+
+        try {
+            await IncomeCategory.collection.dropIndex('name_1');
+            console.log("Dropped legacy name index");
+        } catch (err) {
+            // Index doesn't exist, that's fine
+            if (err.code !== 27) {
+                console.log("Note: name index doesn't exist or already removed");
+            }
         }
 
         console.log("\n=== Test Credentials ===");
