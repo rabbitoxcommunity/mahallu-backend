@@ -117,7 +117,7 @@ exports.getHadiyaCollections = async (req, res, next) => {
 
             // Build search query
             query.$or = [
-                { collection_code: { $regex: search, $options: 'i' } },
+                // { collection_code: { $regex: search, $options: 'i' } },
                 { contributor_name: { $regex: search, $options: 'i' } },
                 { contributor_place: { $regex: search, $options: 'i' } },
                 { contributor_mobile: { $regex: search, $options: 'i' } },
