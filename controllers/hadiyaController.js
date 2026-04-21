@@ -74,7 +74,7 @@ exports.createHadiyaCollection = async (req, res, next) => {
 // @access  Private
 exports.getHadiyaCollections = async (req, res, next) => {
     try {
-        const { page = 1, limit = 10, search = '', date_from, date_to, contributor_type, payment_method } = req.query;
+        const { page = 1, limit = 10, search = '', date_from, date_to, contributor_type, payment_method, date_filter } = req.query;
         const tenant_id = req.user.tenant_id;
         const skip = (Number(page) - 1) * Number(limit);
 
@@ -83,13 +83,39 @@ exports.getHadiyaCollections = async (req, res, next) => {
         if (contributor_type) query.contributor_type = contributor_type;
         if (payment_method) query.payment_method = payment_method;
 
-        if (date_from || date_to) {
+        if (date_filter) {
+            query.date = {};
+            const [year, month] = date_filter.split('-').map(Number);
+            const monthStart = new Date(Date.UTC(year, month - 1, 1));
+            const monthEnd = new Date(Date.UTC(year, month, 1));
+
+            query.date.$gte = monthStart;
+            query.date.$lt = monthEnd;
+        } else if (date_from || date_to) {
             query.date = {};
             if (date_from) query.date.$gte = new Date(date_from);
             if (date_to) query.date.$lte = new Date(date_to);
         }
 
+        // If search includes house holder name or house code, find matching house IDs first
+        let houseIds = [];
         if (search) {
+            const House = require('../models/House');
+            const searchNumber = Number(search);
+            const isNumericSearch = !isNaN(searchNumber) && search.trim() !== '';
+
+            const houseQuery = {
+                tenant_id,
+                $or: [
+                    { householder_name: { $regex: search, $options: 'i' } },
+                    { house_code: { $regex: search, $options: 'i' } }
+                ]
+            };
+
+            const houses = await House.find(houseQuery).select('_id');
+            houseIds = houses.map(h => h._id);
+
+            // Build search query
             query.$or = [
                 { collection_code: { $regex: search, $options: 'i' } },
                 { contributor_name: { $regex: search, $options: 'i' } },
@@ -97,6 +123,16 @@ exports.getHadiyaCollections = async (req, res, next) => {
                 { contributor_mobile: { $regex: search, $options: 'i' } },
                 { notes: { $regex: search, $options: 'i' } }
             ];
+
+            // Add house IDs if found
+            if (houseIds.length > 0) {
+                query.$or.push({ house_id: { $in: houseIds } });
+            }
+
+            // Add amount search if numeric
+            if (isNumericSearch) {
+                query.$or.push({ amount: searchNumber });
+            }
         }
 
         const collections = await HadiyaCollection.find(query)
