@@ -19,6 +19,8 @@ app.use("/api/member", require("./routes/memberRoutes"));
 app.use("/api/finance/varisankhya", require("./routes/varisankhyaRoutes"));
 app.use("/api/finance/income", require("./routes/incomeRoutes"));
 app.use("/api/finance/hadiya", require("./routes/hadiyaRoutes"));
+app.use("/api/finance/expense", require("./routes/expenseRoutes"));
 app.use("/api/settings/income-categories", require("./routes/incomeCategoryRoutes"));
+app.use("/api/settings/expense-categories", require("./routes/expenseCategoryRoutes"));
 
 app.listen(5005, () => console.log("Server running on port 5005"));
