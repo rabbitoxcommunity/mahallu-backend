@@ -114,6 +114,9 @@ exports.getExpenseById = async (req, res, next) => {
 // @access  Private
 exports.createExpense = async (req, res, next) => {
   try {
+    console.log('Create Expense - Request Body:', req.body);
+    console.log('Create Expense - File:', req.file);
+
     const {
       date,
       category,
@@ -121,9 +124,18 @@ exports.createExpense = async (req, res, next) => {
       amount,
       payment_method,
       reference_no,
-      notes,
-      bill_file
-    } = req.body;
+      notes
+    } = req.body || {};
+
+    // Handle file upload
+    let bill_file = null;
+    if (req.file) {
+      bill_file = {
+        data: req.file.buffer,
+        contentType: req.file.mimetype,
+        filename: req.file.originalname
+      };
+    }
 
     const voucher_no = await generateVoucherNo(req.user.tenant_id);
 
@@ -165,22 +177,37 @@ exports.updateExpense = async (req, res, next) => {
       amount,
       payment_method,
       reference_no,
-      notes,
-      bill_file
-    } = req.body;
+      notes
+    } = req.body || {};
+
+    // Handle file upload
+    let bill_file = undefined;
+    if (req.file) {
+      bill_file = {
+        data: req.file.buffer,
+        contentType: req.file.mimetype,
+        filename: req.file.originalname
+      };
+    }
+
+    const updateData = {
+      date,
+      category,
+      paid_to,
+      amount: Number(amount),
+      payment_method,
+      reference_no,
+      notes
+    };
+
+    // Only update bill_file if a new file is uploaded
+    if (bill_file) {
+      updateData.bill_file = bill_file;
+    }
 
     const expense = await Expense.findOneAndUpdate(
       { _id: req.params.id, tenant_id: req.user.tenant_id },
-      {
-        date,
-        category,
-        paid_to,
-        amount: Number(amount),
-        payment_method,
-        reference_no,
-        notes,
-        bill_file
-      },
+      updateData,
       { new: true, runValidators: true }
     ).populate('created_by', 'name');
 
