@@ -1,4 +1,5 @@
 const Expense = require('../models/Expense');
+const mongoose = require('mongoose');
 
 // Helper function to generate voucher number
 const generateVoucherNo = async (tenant_id) => {
@@ -121,9 +122,11 @@ exports.createExpense = async (req, res, next) => {
       amount,
       payment_method,
       reference_no,
-      notes,
-      bill_file
+      notes
     } = req.body;
+
+    // Handle file upload
+    const bill_file = req.file ? req.file.filename : null;
 
     const voucher_no = await generateVoucherNo(req.user.tenant_id);
 
@@ -138,7 +141,8 @@ exports.createExpense = async (req, res, next) => {
       notes,
       bill_file,
       tenant_id: req.user.tenant_id,
-      created_by: req.user.id
+      created_by: req.user.id,
+      is_active: true
     });
 
     const populatedExpense = await Expense.findById(expense._id).populate('created_by', 'name');
@@ -165,9 +169,11 @@ exports.updateExpense = async (req, res, next) => {
       amount,
       payment_method,
       reference_no,
-      notes,
-      bill_file
+      notes
     } = req.body;
+
+    // Handle file upload
+    const bill_file = req.file ? req.file.filename : req.body.bill_file;
 
     const expense = await Expense.findOneAndUpdate(
       { _id: req.params.id, tenant_id: req.user.tenant_id },
@@ -223,8 +229,27 @@ exports.getExpenseSummary = async (req, res, next) => {
   try {
     const tenant_id = req.user.tenant_id;
     const now = new Date();
-    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+    // Get start of today in UTC
+    const today = new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()));
+    // Get start of month in UTC
+    const monthStart = new Date(Date.UTC(now.getFullYear(), now.getMonth(), 1));
+
+    console.log('Expense Summary - tenant_id:', tenant_id);
+    console.log('Expense Summary - tenant_id type:', typeof tenant_id);
+    console.log('Expense Summary - today:', today);
+    console.log('Expense Summary - monthStart:', monthStart);
+
+    // Count total expenses for this tenant
+    const countResult = await Expense.countDocuments({ tenant_id });
+    console.log('Expense Summary - total count:', countResult);
+
+    // Get sample expense to check tenant_id format
+    const sampleExpense = await Expense.findOne({ tenant_id });
+    console.log('Expense Summary - sample expense:', sampleExpense);
+    console.log('Expense Summary - sample expense tenant_id:', sampleExpense?.tenant_id);
+    console.log('Expense Summary - sample expense tenant_id type:', typeof sampleExpense?.tenant_id);
+
+    const tenantObjectId = new mongoose.Types.ObjectId(tenant_id);
 
     const [
       todayTotal,
@@ -234,26 +259,36 @@ exports.getExpenseSummary = async (req, res, next) => {
       totalExpense
     ] = await Promise.all([
       Expense.aggregate([
-        { $match: { tenant_id, date: { $gte: today }, is_active: true } },
+        { $match: { tenant_id: tenantObjectId, date: { $gte: today } } },
         { $group: { _id: null, total: { $sum: '$amount' } } }
       ]),
       Expense.aggregate([
-        { $match: { tenant_id, date: { $gte: monthStart }, is_active: true } },
+        { $match: { tenant_id: tenantObjectId, date: { $gte: monthStart } } },
         { $group: { _id: null, total: { $sum: '$amount' } } }
       ]),
       Expense.aggregate([
-        { $match: { tenant_id, payment_method: 'cash', is_active: true } },
+        { $match: { tenant_id: tenantObjectId, payment_method: 'cash' } },
         { $group: { _id: null, total: { $sum: '$amount' } } }
       ]),
       Expense.aggregate([
-        { $match: { tenant_id, payment_method: { $in: ['upi', 'bank'] }, is_active: true } },
+        { $match: { tenant_id: tenantObjectId, payment_method: { $in: ['upi', 'bank'] } } },
         { $group: { _id: null, total: { $sum: '$amount' } } }
       ]),
       Expense.aggregate([
-        { $match: { tenant_id, is_active: true } },
+        { $match: { tenant_id: tenantObjectId } },
         { $group: { _id: null, total: { $sum: '$amount' } } }
       ])
     ]);
+
+    console.log('Expense Summary - todayTotal:', todayTotal);
+    console.log('Expense Summary - monthTotal:', monthTotal);
+    console.log('Expense Summary - cashTotal:', cashTotal);
+    console.log('Expense Summary - bankTotal:', bankTotal);
+    console.log('Expense Summary - totalExpense:', totalExpense);
+
+    // Check if expense_date field exists in all expenses
+    const allExpenses = await Expense.find({ tenant_id: tenantObjectId });
+    console.log('Expense Summary - all expenses:', allExpenses.map(e => ({ date: e.date, expense_date: e.expense_date, amount: e.amount })));
 
     res.json({
       today_total: todayTotal[0]?.total || 0,
