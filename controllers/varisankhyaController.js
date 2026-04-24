@@ -1,5 +1,7 @@
 const Varisankhya = require("../models/Varisankhya");
 const House = require("../models/House");
+const Family = require("../models/Family");
+const VarisankhyaConfig = require("../models/VarisankhyaConfig");
 const mongoose = require("mongoose");
 
 // Generate receipt number
@@ -56,13 +58,26 @@ exports.generateMonthlyDues = async (req, res) => {
                     continue;
                 }
 
+                // Get house's economic status
+                const economicStatus = house.economic_status || 'Normal';
+
+                // Get configured amount for this category
+                const config = await VarisankhyaConfig.findOne({
+                    tenant_id,
+                    category: economicStatus,
+                    is_active: true
+                });
+
+                // Use configured amount or fallback to default
+                const amountDue = config ? config.monthly_amount : default_amount;
+
                 // Create new due
                 const varisankhya = await Varisankhya.create({
                     tenant_id,
                     house_id: house._id,
                     month,
                     year,
-                    amount_due: default_amount,
+                    amount_due: amountDue,
                     amount_paid: 0,
                     status: "unpaid",
                 });
@@ -73,6 +88,8 @@ exports.generateMonthlyDues = async (req, res) => {
                     house_code: house.house_code,
                     status: "created",
                     varisankhya_id: varisankhya._id,
+                    amount_due: amountDue,
+                    category: economicStatus,
                 });
             } catch (err) {
                 results.push({

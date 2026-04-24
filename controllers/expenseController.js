@@ -18,6 +18,8 @@ const generateVoucherNo = async (tenant_id) => {
 // @desc    Get all expenses with filters and pagination
 // @route   GET /api/finance/expense
 // @access  Private
+
+
 exports.getExpenses = async (req, res, next) => {
   try {
     const {

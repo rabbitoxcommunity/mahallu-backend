@@ -24,5 +24,6 @@ app.use("/api/finance/expense", require("./routes/expenseRoutes"));
 app.use("/api/finance/reports", require("./routes/reportRoutes"));
 app.use("/api/settings/income-categories", require("./routes/incomeCategoryRoutes"));
 app.use("/api/settings/expense-categories", require("./routes/expenseCategoryRoutes"));
+app.use("/api/settings/varisankhya-config", require("./routes/varisankhyaConfigRoutes"));
 
 app.listen(5005, () => console.log("Server running on port 5005"));
