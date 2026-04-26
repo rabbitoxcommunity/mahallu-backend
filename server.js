@@ -11,6 +11,9 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// Serve static files
+app.use(express.static('public'));
+
 app.use("/api/auth", require("./routes/authRoutes"));
 app.use("/api/tenants", require("./routes/tenantRoutes"));
 app.use("/api/users", require("./routes/userRoutes"));
@@ -25,5 +28,7 @@ app.use("/api/finance/reports", require("./routes/reportRoutes"));
 app.use("/api/settings/income-categories", require("./routes/incomeCategoryRoutes"));
 app.use("/api/settings/expense-categories", require("./routes/expenseCategoryRoutes"));
 app.use("/api/settings/varisankhya-config", require("./routes/varisankhyaConfigRoutes"));
+app.use("/api/admin/marriages", require("./routes/adminMarriageRoutes"));
+app.use("/api/public/marriages", require("./routes/publicMarriageRoutes"));
 
 app.listen(5005, () => console.log("Server running on port 5005"));

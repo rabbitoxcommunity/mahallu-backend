@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Marriage Certificate</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    body {
+      font-family: 'Georgia', serif;
+      background: #f5f5f5;
+      margin: 0;
+      padding: 0;
+    }
+    .certificate {
+      width: 297mm;
+      min-height: 210mm;
+      margin: 0 auto;
+      background: white;
+      padding: 60px;
+      border: 3px solid #1a365d;
+      position: relative;
+      box-sizing: border-box;
+    }
+    .certificate::before {
+      content: '';
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      right: 10px;
+      bottom: 10px;
+      border: 1px solid #1a365d;
+    }
+    .header {
+      text-align: center;
+      margin-bottom: 40px;
+    }
+    .logo {
+      width: 80px;
+      height: 80px;
+      margin: 0 auto 20px;
+      background: #1a365d;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-size: 40px;
+      font-weight: bold;
+    }
+    .title {
+      font-size: 32px;
+      color: #1a365d;
+      font-weight: bold;
+      margin-bottom: 10px;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+    }
+    .subtitle {
+      font-size: 14px;
+      color: #666;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+    .content {
+      margin: 40px 0;
+      line-height: 2;
+      font-size: 16px;
+      color: #333;
+    }
+    .content p {
+      margin-bottom: 20px;
+    }
+    .names {
+      font-size: 20px;
+      font-weight: bold;
+      color: #1a365d;
+    }
+    .details {
+      margin: 30px 0;
+      padding: 20px;
+      background: #f8f9fa;
+      border-left: 4px solid #1a365d;
+    }
+    .details-row {
+      display: flex;
+      margin-bottom: 15px;
+    }
+    .details-label {
+      width: 150px;
+      font-weight: bold;
+      color: #1a365d;
+    }
+    .details-value {
+      flex: 1;
+      color: #333;
+    }
+    .footer {
+      margin-top: 60px;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+    }
+    .signature-box {
+      text-align: center;
+      width: 200px;
+    }
+    .signature-line {
+      border-top: 1px solid #333;
+      margin-top: 60px;
+      padding-top: 10px;
+      font-size: 14px;
+      color: #333;
+    }
+    .seal {
+      width: 100px;
+      height: 100px;
+      border: 3px solid #c53030;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #c53030;
+      font-weight: bold;
+      font-size: 12px;
+      text-align: center;
+      margin: 0 auto;
+    }
+    .certificate-no {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      font-size: 12px;
+      color: #666;
+    }
+  </style>
+</head>
+<body>
+  <div class="certificate">
+    <div class="certificate-no">Certificate No: {{certificate_no}}</div>
+    
+    <div class="header">
+      <div class="logo">M</div>
+      <div class="title">Marriage Certificate</div>
+      <div class="subtitle">Official Document</div>
+    </div>
+
+    <div class="content">
+      <p>This is to certify that</p>
+      
+      <p class="names">
+        <strong>{{groom_name}}</strong><br>
+        Son of <strong>{{groom_father}}</strong>
+      </p>
+      
+      <p>and</p>
+      
+      <p class="names">
+        <strong>{{bride_name}}</strong><br>
+        Daughter of <strong>{{bride_father}}</strong>
+      </p>
+      
+      <p>were solemnly married on <strong>{{date}}</strong> at <strong>{{place}}</strong>.</p>
+    </div>
+
+    <div class="details">
+      <div class="details-row">
+        <div class="details-label">Marriage ID:</div>
+        <div class="details-value">{{marriage_id}}</div>
+      </div>
+      <div class="details-row">
+        <div class="details-label">Certificate No:</div>
+        <div class="details-value">{{certificate_no}}</div>
+      </div>
+      <div class="details-row">
+        <div class="details-label">Date:</div>
+        <div class="details-value">{{date}}</div>
+      </div>
+      <div class="details-row">
+        <div class="details-label">Place:</div>
+        <div class="details-value">{{place}}</div>
+      </div>
+      <div class="details-row">
+        <div class="details-label">Contact:</div>
+        <div class="details-value">{{mobile}}</div>
+      </div>
+    </div>
+
+    <div class="footer">
+      <div class="signature-box">
+        <div class="signature-line">Mahallu President</div>
+      </div>
+      <div class="seal">
+        OFFICIAL<br>SEAL
+      </div>
+      <div class="signature-box">
+        <div class="signature-line">Witness</div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
