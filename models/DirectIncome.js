@@ -10,8 +10,6 @@ const directIncomeSchema = new mongoose.Schema({
     income_code: {
         type: String,
         required: true,
-        unique: true,
-        index: true
     },
     category: {
         type: String,
@@ -67,6 +65,7 @@ const directIncomeSchema = new mongoose.Schema({
 });
 
 // Compound indexes
+directIncomeSchema.index({ tenant_id: 1, income_code: 1 }, { unique: true });
 directIncomeSchema.index({ tenant_id: 1, category: 1 });
 directIncomeSchema.index({ tenant_id: 1, date: 1 });
 

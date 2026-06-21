@@ -10,8 +10,6 @@ const expenseSchema = new mongoose.Schema({
   voucher_no: {
     type: String,
     required: true,
-    unique: true,
-    index: true
   },
   date: {
     type: Date,
@@ -62,7 +60,8 @@ const expenseSchema = new mongoose.Schema({
   timestamps: true
 });
 
-// Index for filtering
+// Compound indexes
+expenseSchema.index({ tenant_id: 1, voucher_no: 1 }, { unique: true });
 expenseSchema.index({ tenant_id: 1, date: -1 });
 expenseSchema.index({ tenant_id: 1, category: 1 });
 expenseSchema.index({ tenant_id: 1, payment_method: 1 });

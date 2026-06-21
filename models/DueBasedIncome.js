@@ -10,8 +10,6 @@ const dueBasedIncomeSchema = new mongoose.Schema({
     income_code: {
         type: String,
         required: true,
-        unique: true,
-        index: true
     },
     category: {
         type: String,
@@ -92,6 +90,7 @@ const dueBasedIncomeSchema = new mongoose.Schema({
 });
 
 // Compound indexes
+dueBasedIncomeSchema.index({ tenant_id: 1, income_code: 1 }, { unique: true });
 dueBasedIncomeSchema.index({ tenant_id: 1, category: 1, status: 1 });
 dueBasedIncomeSchema.index({ tenant_id: 1, month: 1, year: 1 });
 dueBasedIncomeSchema.index({ tenant_id: 1, due_date: 1 });

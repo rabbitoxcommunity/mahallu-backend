@@ -12,7 +12,6 @@ const HadiyaCollectionSchema = new mongoose.Schema(
         collection_code: {
             type: String,
             required: true,
-            unique: true,
             trim: true,
         },
 
@@ -88,9 +87,9 @@ const HadiyaCollectionSchema = new mongoose.Schema(
     { timestamps: true }
 );
 
-// Index for querying by tenant and date
+// Compound indexes
+HadiyaCollectionSchema.index({ tenant_id: 1, collection_code: 1 }, { unique: true });
 HadiyaCollectionSchema.index({ tenant_id: 1, date: -1 });
 HadiyaCollectionSchema.index({ tenant_id: 1, contributor_type: 1 });
-HadiyaCollectionSchema.index({ tenant_id: 1, collection_code: 1 });
 
 module.exports = mongoose.model("HadiyaCollection", HadiyaCollectionSchema);

@@ -1,18 +1,21 @@
 const Expense = require('../models/Expense');
+const Counter = require('../models/Counter');
+const generateSequence = require('../utils/generateSequence');
 
-// Helper function to generate voucher number
 const generateVoucherNo = async (tenant_id) => {
-  const lastExpense = await Expense.findOne({ tenant_id })
-    .sort({ voucher_no: -1 })
-    .select('voucher_no');
-
-  if (!lastExpense || !lastExpense.voucher_no) {
-    return 'EXP-001';
+  const existing = await Counter.findOne({ tenant_id, type: 'expense' });
+  if (!existing) {
+    const last = await Expense.findOne({ tenant_id })
+      .sort({ voucher_no: -1 })
+      .select('voucher_no');
+    if (last?.voucher_no) {
+      const n = parseInt(last.voucher_no.split('-')[1]);
+      if (!isNaN(n) && n > 0) {
+        try { await Counter.create({ tenant_id, type: 'expense', seq: n }); } catch (e) {}
+      }
+    }
   }
-
-  const lastNumber = parseInt(lastExpense.voucher_no.split('-')[1]);
-  const newNumber = lastNumber + 1;
-  return `EXP-${String(newNumber).padStart(3, '0')}`;
+  return generateSequence(tenant_id, 'expense', 'EXP');
 };
 
 // @desc    Get all expenses with filters and pagination
