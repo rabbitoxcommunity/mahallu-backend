@@ -61,6 +61,20 @@ const MemberSchema = new mongoose.Schema(
             type: Boolean,
             default: true,
         },
+
+        is_deceased: {
+            type: Boolean,
+            default: false,
+        },
+
+        date_of_death: {
+            type: Date,
+        },
+
+        death_registry_id: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'DeathRegistry',
+        },
     },
     { timestamps: true }
 );
