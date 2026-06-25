@@ -9,3 +9,4 @@ yarn-error.log*
 # seedTestData.js.map
 # seedUsers.js
 # seedUsers.js.map
+public/certificates

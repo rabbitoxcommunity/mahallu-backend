@@ -9,15 +9,11 @@ const marriageSchema = new mongoose.Schema({
   },
   marriage_id: {
     type: String,
-    required: true,
-    unique: true,
-    index: true
+    required: true
   },
   certificate_no: {
     type: String,
-    required: true,
-    unique: true,
-    index: true
+    required: true
   },
   groom_name: {
     type: String,

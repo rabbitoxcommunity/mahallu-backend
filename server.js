@@ -30,5 +30,6 @@ app.use("/api/settings/expense-categories", require("./routes/expenseCategoryRou
 app.use("/api/settings/varisankhya-config", require("./routes/varisankhyaConfigRoutes"));
 app.use("/api/admin/marriages", require("./routes/adminMarriageRoutes"));
 app.use("/api/public/marriages", require("./routes/publicMarriageRoutes"));
+app.use("/api/community/welfare", require("./routes/welfareRoutes"));
 
 app.listen(5005, () => console.log("Server running on port 5005"));

@@ -3,18 +3,16 @@ const puppeteer = require('puppeteer');
 const fs = require('fs');
 const path = require('path');
 
-// Helper function to generate marriage ID
 const generateMarriageId = async (tenant_id) => {
-  const count = await Marriage.countDocuments({ tenant_id });
-  const paddedCount = String(count + 1).padStart(3, '0');
-  return `MRG-${paddedCount}`;
+  const last = await Marriage.findOne({ tenant_id }, { marriage_id: 1 }).sort({ created_at: -1 });
+  const num = last ? parseInt(last.marriage_id.replace('MRG-', ''), 10) : 0;
+  return `MRG-${String(num + 1).padStart(3, '0')}`;
 };
 
-// Helper function to generate certificate number
 const generateCertificateNo = async (tenant_id) => {
-  const count = await Marriage.countDocuments({ tenant_id });
-  const paddedCount = String(count + 1).padStart(3, '0');
-  return `CERT-${paddedCount}`;
+  const last = await Marriage.findOne({ tenant_id }, { certificate_no: 1 }).sort({ created_at: -1 });
+  const num = last ? parseInt(last.certificate_no.replace('CERT-', ''), 10) : 0;
+  return `CERT-${String(num + 1).padStart(3, '0')}`;
 };
 
 // Helper function to generate PDF
@@ -73,15 +71,10 @@ const generateMarriagePDF = async (marriage) => {
     
     await page.pdf({
       path: pdfPath,
-      format: 'A4',
+      format: 'A5',
       landscape: true,
       printBackground: true,
-      margin: {
-        top: '20px',
-        right: '20px',
-        bottom: '20px',
-        left: '20px'
-      }
+      margin: { top: '0', right: '0', bottom: '0', left: '0' }
     });
     console.log('PDF generated successfully');
 

@@ -7,6 +7,8 @@ const legacyIndexes = [
     { collection: "directincomes",      index: "income_code_1" },
     { collection: "expenses",           index: "voucher_no_1" },
     { collection: "hadiyacollections",  index: "collection_code_1" },
+    { collection: "marriages",          index: "marriage_id_1" },
+    { collection: "marriages",          index: "certificate_no_1" },
 ];
 
 const dropLegacyIndexes = async () => {
