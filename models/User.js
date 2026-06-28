@@ -43,6 +43,7 @@ const UserSchema = new mongoose.Schema(
             family: { type: Boolean, default: false },
             dashboard: { type: Boolean, default: false },
             finance: { type: Boolean, default: false },
+            results: { type: Boolean, default: false },
         },
 
         is_active: {

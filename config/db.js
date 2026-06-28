@@ -9,6 +9,12 @@ const legacyIndexes = [
     { collection: "hadiyacollections",  index: "collection_code_1" },
     { collection: "marriages",          index: "marriage_id_1" },
     { collection: "marriages",          index: "certificate_no_1" },
+    { collection: "madrasas",           index: "tenant_id_1_madrasa_code_1" },
+    { collection: "madrasaclasses",     index: "tenant_id_1_madrasa_id_1_class_code_1" },
+    { collection: "madrasaclasses",     index: "tenant_id_1_madrasa_id_1_academic_year_id_1_class_code_1" },
+    { collection: "madrasasubjects",    index: "tenant_id_1_madrasa_id_1_subject_code_1" },
+    { collection: "resulttypes",        index: "tenant_id_1_code_1" },
+    { collection: "academicyears",      index: "tenant_id_1_madrasa_id_1_year_code_1" },
 ];
 
 const dropLegacyIndexes = async () => {

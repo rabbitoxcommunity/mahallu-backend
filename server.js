@@ -33,5 +33,7 @@ app.use("/api/public/marriages", require("./routes/publicMarriageRoutes"));
 app.use("/api/community/welfare", require("./routes/welfareRoutes"));
 app.use("/api/community/death", require("./routes/deathRoutes"));
 app.use("/api/community/communication", require("./routes/communicationRoutes"));
+app.use("/api/results/settings", require("./routes/resultSettingsRoutes"));
+app.use("/api/results", require("./routes/resultRoutes"));
 
 app.listen(5005, () => console.log("Server running on port 5005"));
