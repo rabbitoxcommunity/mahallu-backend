@@ -4,336 +4,350 @@
   <meta charset="UTF-8">
   <title>Marriage Certificate</title>
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Amiri:ital,wght@0,400;0,700;1,400&family=Cinzel:wght@400;600;700&display=swap');
-
-    @page { size: A5 landscape; margin: 0; }
+    @page { size: A4 portrait; margin: 0; }
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    html, body { width: 210mm; height: 148mm; overflow: hidden; background: #F5F0E8; }
+    html, body {
+      width: 210mm; height: 297mm;
+      background: #fff;
+      font-family: 'Times New Roman', Times, Georgia, serif;
+    }
 
-    .page { width: 210mm; height: 148mm; position: relative; overflow: hidden; }
+    .page { width: 210mm; height: 297mm; position: relative; }
 
     .border-svg {
       position: absolute; top: 0; left: 0;
-      width: 210mm; height: 148mm;
+      width: 210mm; height: 297mm;
+      pointer-events: none;
     }
 
+    /* ── Content ── */
     .content {
       position: absolute;
-      top: 18mm; left: 18mm; right: 18mm; bottom: 16mm;
+      top: 16mm; left: 16mm; right: 16mm; bottom: 16mm;
       display: flex; flex-direction: column;
-      font-family: 'Georgia', serif;
     }
 
-    .bismillah {
-      font-family: 'Amiri', serif; font-size: 13pt;
-      color: #6B0E0E; text-align: center; line-height: 1.2;
+    .cert-no {
+      font-size: 8pt; color: #333; margin-bottom: 3mm;
     }
+
+    /* Header */
+    .org-name {
+      font-size: 17pt; font-weight: bold; color: #000;
+      text-align: center; letter-spacing: 0.5px;
+    }
+    .dept-name {
+      font-size: 9pt; color: #333;
+      text-align: center; margin-top: 0.5mm;
+    }
+    .cert-title {
+      font-size: 14pt; font-weight: bold;
+      text-align: center; text-decoration: underline;
+      color: #000; margin-top: 1.5mm;
+    }
+    .cert-subtitle {
+      font-size: 7.5pt; font-style: italic;
+      text-align: center; color: #444;
+      margin-top: 2mm; line-height: 1.5;
+    }
+
+    /* Divider */
     .divider {
-      display: flex; align-items: center; gap: 3mm; margin: 0.8mm 0;
+      border-top: 1.5pt solid #8B0000;
+      margin: 3mm 0 2.5mm;
     }
-    .divider .line { flex: 1; height: 1px; background: linear-gradient(to right, transparent, #8B1C1C, transparent); }
-    .divider .orn { color: #8B1C1C; font-size: 10pt; }
-    .title-en {
-      font-family: 'Cinzel', serif; font-size: 13pt; font-weight: 700;
-      color: #4A0E0E; letter-spacing: 3px; text-transform: uppercase; text-align: center;
-    }
-    .title-ar {
-      font-family: 'Amiri', serif; font-size: 10pt;
-      color: #8B1C1C; text-align: center; margin-top: 0.5mm;
-    }
-    .cert-no { font-size: 6.5pt; color: #888; letter-spacing: 1px; text-align: center; margin-top: 0.5mm; }
-    .certify { text-align: center; font-size: 7pt; color: #555; font-style: italic; margin: 1mm 0; }
 
-    .body { flex: 1; display: flex; align-items: center; }
-    .party { flex: 1; padding: 0 4mm; }
-    .party.bride { text-align: right; }
-    .party-label { font-size: 6.5pt; color: #8B1C1C; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 1.5mm; font-weight: 600; }
-    .party-name { font-size: 11pt; font-weight: 700; color: #2D0A0A; margin-bottom: 1.5mm; }
-    .party-father { font-size: 7.5pt; color: #555; }
-    .party-father span { color: #4A0E0E; font-weight: 600; }
-    .cdiv { width: 10mm; display: flex; flex-direction: column; align-items: center; gap: 2mm; }
-    .vl { width: 1px; flex: 1; background: linear-gradient(to bottom, transparent, #8B1C1C 30%, #8B1C1C 70%, transparent); }
-    .and-t { font-family: 'Amiri', serif; font-size: 9pt; color: #8B1C1C; }
-
-    .strip {
-      background: linear-gradient(135deg, #6B1010, #8B2020);
-      border-radius: 2px; padding: 1.5mm 4mm;
-      display: flex; justify-content: space-around; align-items: center;
-      margin: 1mm 0;
+    /* Nikkah center block */
+    .nikkah-block {
+      display: flex;
+      justify-content: center;
+      gap: 0;
+      border: 0.8pt solid #555;
+      margin-bottom: 3mm;
     }
-    .di { text-align: center; color: white; flex: 1; }
-    .di + .di { border-left: 1px solid rgba(196,160,82,0.4); }
-    .dl { font-size: 5.5pt; text-transform: uppercase; letter-spacing: 1px; color: #C4A052; margin-bottom: 0.3mm; }
-    .dv { font-size: 7.5pt; font-weight: 600; }
-
-    .footer { display: flex; justify-content: space-between; align-items: flex-end; }
-    .sig { text-align: center; width: 28mm; }
-    .sig-line { border-top: 1px solid #8B1C1C; padding-top: 1mm; font-size: 6pt; color: #555; text-transform: uppercase; letter-spacing: 0.8px; }
-    .seal {
-      width: 15mm; height: 15mm; border: 2px solid #C4A052; border-radius: 50%;
-      display: flex; flex-direction: column; align-items: center; justify-content: center;
-      color: #6B1010; font-size: 5pt; font-weight: 700; text-align: center; text-transform: uppercase;
-      background: radial-gradient(circle, #FDF8EF 60%, #F0E8D0);
+    .nikkah-cell {
+      flex: 1;
+      padding: 2mm 3mm;
+      border-right: 0.8pt solid #555;
+      font-size: 8pt;
     }
-    .seal .sc { font-size: 9pt; color: #8B1C1C; }
+    .nikkah-cell:last-child { border-right: none; }
+    .nikkah-label {
+      font-weight: bold; font-size: 7.5pt;
+      color: #444; display: block; margin-bottom: 0.5mm;
+    }
+    .nikkah-value { font-size: 8.5pt; }
+
+    /* Party headers row */
+    .party-header-row {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 1.5mm;
+    }
+    .party-lbl {
+      font-size: 9.5pt; font-weight: bold;
+      text-decoration: underline; color: #000;
+    }
+
+    /* Details table heading */
+    .table-heading {
+      font-size: 8.5pt; font-style: italic; font-weight: bold;
+      text-align: center; margin-bottom: 1.5mm; color: #111;
+    }
+
+    /* Details table */
+    .dtable {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 8.5pt;
+      margin-bottom: 3mm;
+    }
+    .dtable td {
+      border: 0.7pt solid #666;
+      padding: 1.8mm 2.5mm;
+      vertical-align: top;
+      line-height: 1.4;
+    }
+    .dtable .lbl {
+      font-weight: bold;
+      background: #f7f7f7;
+      width: 30%;
+      color: #222;
+    }
+    .dtable .col-h { width: 35%; }
+    .dtable .col-w { width: 35%; }
+
+    /* Performer row */
+    .extra-row {
+      display: flex; gap: 8mm;
+      font-size: 8.5pt; margin-bottom: 2.5mm;
+    }
+    .extra-field strong { margin-right: 1mm; }
+
+    /* Bottom info */
+    .bottom-row {
+      display: flex; justify-content: space-between;
+      font-size: 8pt; margin-bottom: 2mm;
+      border-top: 0.8pt solid #ccc;
+      padding-top: 2mm;
+    }
+    .bottom-field { display: flex; gap: 1mm; }
+
+    /* Footer */
+    .footer {
+      margin-top: auto;
+      display: flex;
+      justify-content: flex-end;
+      padding-top: 4mm;
+    }
+    .sig-block { text-align: center; }
+    .sig-space { height: 14mm; }
+    .sig-line {
+      width: 50mm; border-top: 1pt solid #000;
+      padding-top: 1.5mm; font-size: 8pt; font-weight: bold;
+      text-align: center;
+    }
+    .sig-org { font-size: 7.5pt; margin-top: 1mm; text-align: center; }
+
+    /* Disclaimer */
+    .disclaimer {
+      margin-top: 3mm;
+      font-size: 6.5pt; color: #666;
+      text-align: center; font-style: italic; line-height: 1.5;
+      border-top: 0.5pt solid #ddd; padding-top: 2mm;
+    }
   </style>
 </head>
 <body>
 <div class="page">
 
-  <!-- ═══════════════════ ORNATE BORDER SVG ═══════════════════ -->
-  <svg class="border-svg" viewBox="0 0 794 560" xmlns="http://www.w3.org/2000/svg">
+  <!-- ═══ BORDER SVG — Double line + corner rosettes (A4 portrait 794×1123) ═══ -->
+  <svg class="border-svg" viewBox="0 0 794 1123" xmlns="http://www.w3.org/2000/svg">
     <defs>
-      <!-- ── Horizontal arabesque tile (80 × 65) ── -->
-      <pattern id="aH" x="0" y="0" width="80" height="65" patternUnits="userSpaceOnUse">
-        <!-- Primary vine: double S-curve -->
-        <path d="M0,32 C10,4 30,4 40,32 C50,60 70,60 80,32"
-              fill="none" stroke="#7A1515" stroke-width="1.7" stroke-linecap="round"/>
-        <!-- Secondary interlaced vine -->
-        <path d="M0,32 C10,60 30,60 40,32 C50,4 70,4 80,32"
-              fill="none" stroke="#7A1515" stroke-width="1.0" stroke-linecap="round" opacity="0.42"/>
-        <!-- Gold thin vine -->
-        <path d="M10,32 C18,18 28,18 38,32 C48,46 58,46 68,32"
-              fill="none" stroke="#C4A052" stroke-width="0.7" opacity="0.5"/>
-        <!-- Spiral tendril at top peak ≈(20,4) -->
-        <path d="M20,4 C17,-2 11,-2 12,4 C13,10 20,9 20,4" fill="none" stroke="#7A1515" stroke-width="0.9"/>
-        <path d="M12,4 C10,0 6,1 7,5" fill="none" stroke="#7A1515" stroke-width="0.6"/>
-        <!-- Spiral at bottom trough ≈(60,60) -->
-        <path d="M60,60 C63,66 69,66 68,60 C67,54 60,55 60,60" fill="none" stroke="#7A1515" stroke-width="0.9"/>
-        <path d="M68,60 C70,64 74,63 73,59" fill="none" stroke="#7A1515" stroke-width="0.6"/>
-        <!-- Leaves at top peak (20,4) -->
-        <path d="M20,4 C13,-4 6,-1 10,7 C14,15 22,11 20,4Z" fill="#8B1C1C" opacity="0.45"/>
-        <path d="M20,4 C27,-4 34,-1 30,7 C26,15 18,11 20,4Z" fill="#8B1C1C" opacity="0.45"/>
-        <circle cx="20" cy="4" r="1.8" fill="#C4A052" opacity="0.85"/>
-        <!-- Leaves at bottom trough (60,60) -->
-        <path d="M60,60 C53,68 46,65 50,57 C54,49 62,53 60,60Z" fill="#8B1C1C" opacity="0.45"/>
-        <path d="M60,60 C67,68 74,65 70,57 C66,49 58,53 60,60Z" fill="#8B1C1C" opacity="0.45"/>
-        <circle cx="60" cy="60" r="1.8" fill="#C4A052" opacity="0.85"/>
-        <!-- Node flowers at vine crossings -->
-        <circle cx="0"  cy="32" r="2.8" fill="#7A1515"/>
-        <circle cx="40" cy="32" r="3.5" fill="#7A1515"/>
-        <circle cx="80" cy="32" r="2.8" fill="#7A1515"/>
-        <!-- 4-petal at center node -->
-        <path d="M40,32 C38,27 42,27 40,32Z" fill="#C4A052"/>
-        <path d="M40,32 C38,37 42,37 40,32Z" fill="#C4A052"/>
-        <path d="M40,32 C35,30 35,34 40,32Z" fill="#C4A052"/>
-        <path d="M40,32 C45,30 45,34 40,32Z" fill="#C4A052"/>
-      </pattern>
+      <!-- ── Corner rosette (centered at origin, translated to each corner) ── -->
+      <g id="ros">
+        <!-- White disc to blank the border lines underneath -->
+        <circle r="24" fill="white"/>
+        <!-- Outer ring -->
+        <circle r="22" fill="none" stroke="#8B0000" stroke-width="1.4"/>
+        <!-- Gold ring -->
+        <circle r="15" fill="none" stroke="#C49A22" stroke-width="1"/>
+        <!-- 4 cardinal petals (maroon) -->
+        <path d="M0,-4.5 C-9,-12 -9,-21 0,-16 C9,-21 9,-12 0,-4.5Z" fill="#8B0000" opacity="0.9"/>
+        <path d="M0,4.5  C-9,12  -9,21  0,16  C9,21  9,12  0,4.5Z"  fill="#8B0000" opacity="0.9"/>
+        <path d="M-4.5,0 C-12,-9 -21,-9 -16,0 C-21,9 -12,9 -4.5,0Z" fill="#8B0000" opacity="0.9"/>
+        <path d="M4.5,0  C12,-9  21,-9  16,0  C21,9  12,9  4.5,0Z"  fill="#8B0000" opacity="0.9"/>
+        <!-- 4 diagonal petals (gold) -->
+        <path d="M3,-3 C5,-14 13,-18 12,-12 C18,-13 14,-5 3,-3Z"    fill="#C49A22" opacity="0.85"/>
+        <path d="M3,3  C14,5  18,13  12,12  C13,18  5,14  3,3Z"    fill="#C49A22" opacity="0.85"/>
+        <path d="M-3,3 C-5,14 -13,18 -12,12 C-18,13 -14,5 -3,3Z"   fill="#C49A22" opacity="0.85"/>
+        <path d="M-3,-3 C-14,-5 -18,-13 -12,-12 C-13,-18 -5,-14 -3,-3Z" fill="#C49A22" opacity="0.85"/>
+        <!-- Center -->
+        <circle r="7"   fill="#8B0000"/>
+        <circle r="4"   fill="#C49A22"/>
+        <circle r="1.8" fill="white"/>
+      </g>
 
-      <!-- ── Vertical arabesque tile (65 × 80) ── -->
-      <pattern id="aV" x="0" y="0" width="65" height="80" patternUnits="userSpaceOnUse">
-        <!-- Primary vine -->
-        <path d="M32,0 C60,10 60,30 32,40 C4,50 4,70 32,80"
-              fill="none" stroke="#7A1515" stroke-width="1.7" stroke-linecap="round"/>
-        <!-- Secondary interlaced -->
-        <path d="M32,0 C4,10 4,30 32,40 C60,50 60,70 32,80"
-              fill="none" stroke="#7A1515" stroke-width="1.0" stroke-linecap="round" opacity="0.42"/>
-        <!-- Gold thin vine -->
-        <path d="M32,10 C46,18 46,28 32,38 C18,48 18,58 32,68"
-              fill="none" stroke="#C4A052" stroke-width="0.7" opacity="0.5"/>
-        <!-- Spiral at right peak ≈(60,20) -->
-        <path d="M60,20 C66,17 66,11 60,12 C54,13 55,20 60,20" fill="none" stroke="#7A1515" stroke-width="0.9"/>
-        <path d="M60,12 C64,10 63,6 59,7" fill="none" stroke="#7A1515" stroke-width="0.6"/>
-        <!-- Spiral at left trough ≈(4,60) -->
-        <path d="M4,60 C-2,63 -2,69 4,68 C10,67 9,60 4,60" fill="none" stroke="#7A1515" stroke-width="0.9"/>
-        <!-- Leaves at right peak (60,20) -->
-        <path d="M60,20 C68,13 65,6 57,10 C49,14 53,22 60,20Z" fill="#8B1C1C" opacity="0.45"/>
-        <path d="M60,20 C68,27 65,34 57,30 C49,26 53,18 60,20Z" fill="#8B1C1C" opacity="0.45"/>
-        <circle cx="60" cy="20" r="1.8" fill="#C4A052" opacity="0.85"/>
-        <!-- Leaves at left trough (4,60) -->
-        <path d="M4,60 C-4,53 -1,46 7,50 C15,54 11,62 4,60Z" fill="#8B1C1C" opacity="0.45"/>
-        <path d="M4,60 C-4,67 -1,74 7,70 C15,66 11,58 4,60Z" fill="#8B1C1C" opacity="0.45"/>
-        <circle cx="4" cy="60" r="1.8" fill="#C4A052" opacity="0.85"/>
-        <!-- Node flowers -->
-        <circle cx="32" cy="0"  r="2.8" fill="#7A1515"/>
-        <circle cx="32" cy="40" r="3.5" fill="#7A1515"/>
-        <circle cx="32" cy="80" r="2.8" fill="#7A1515"/>
-        <path d="M32,40 C27,38 27,42 32,40Z" fill="#C4A052"/>
-        <path d="M32,40 C37,38 37,42 32,40Z" fill="#C4A052"/>
-        <path d="M32,40 C30,35 34,35 32,40Z" fill="#C4A052"/>
-        <path d="M32,40 C30,45 34,45 32,40Z" fill="#C4A052"/>
-      </pattern>
+      <!-- ── Side-midpoint ornament (small diamond star) ── -->
+      <g id="mid">
+        <circle r="13" fill="white"/>
+        <circle r="12" fill="none" stroke="#8B0000" stroke-width="1"/>
+        <polygon points="0,-9 9,0 0,9 -9,0" fill="#8B0000" opacity="0.9"/>
+        <polygon points="0,-5 5,0 0,5 -5,0" fill="#C49A22"/>
+        <circle r="2" fill="white"/>
+      </g>
     </defs>
 
-    <!-- ═══ BACKGROUND ═══ -->
-    <rect width="794" height="560" fill="#F5F0E8"/>
+    <!-- Page background -->
+    <rect width="794" height="1123" fill="white"/>
 
-    <!-- ═══ BORDER STRIPS (non-corner areas) ═══ -->
-    <rect x="65"  y="0"   width="664" height="65"  fill="url(#aH)"/><!-- top    -->
-    <rect x="65"  y="495" width="664" height="65"  fill="url(#aH)"/><!-- bottom -->
-    <rect x="0"   y="65"  width="65"  height="430" fill="url(#aV)"/><!-- left   -->
-    <rect x="729" y="65"  width="65"  height="430" fill="url(#aV)"/><!-- right  -->
+    <!-- ── Frame 1: thin outer maroon line ── -->
+    <rect x="11" y="11" width="772" height="1101" fill="none" stroke="#8B0000" stroke-width="1.5"/>
 
-    <!-- ═══ CORNER SQUARES (ivory base, then rosette) ═══ -->
-    <!-- TL: center (32,32)  TR: center (762,32)  BL: center (32,528)  BR: center (762,528) -->
+    <!-- ── Frame 2: gold accent ── -->
+    <rect x="19" y="19" width="756" height="1085" fill="none" stroke="#C49A22" stroke-width="0.9"/>
 
-    <!-- Helper macro drawn at each corner center (cx,cy) with R=28 -->
-    <!-- ── TOP-LEFT ── -->
-    <rect x="0" y="0" width="65" height="65" fill="#F5F0E8"/>
-    <circle cx="32" cy="32" r="30" fill="none" stroke="#7A1515" stroke-width="1.8"/>
-    <circle cx="32" cy="32" r="22" fill="none" stroke="#C4A052" stroke-width="0.9"/>
-    <path d="M32,2  C37,14 37,22 32,32 C27,22 27,14 32,2Z"  fill="#8B1C1C" opacity="0.5"/>
-    <path d="M32,62 C37,50 37,42 32,32 C27,42 27,50 32,62Z" fill="#8B1C1C" opacity="0.5"/>
-    <path d="M2,32  C14,27 22,27 32,32 C22,37 14,37 2,32Z"  fill="#8B1C1C" opacity="0.5"/>
-    <path d="M62,32 C50,27 42,27 32,32 C42,37 50,37 62,32Z" fill="#8B1C1C" opacity="0.5"/>
-    <path d="M53,11 C44,20 38,26 32,32 C38,26 44,19 53,11Z" fill="#C4A052" opacity="0.55"/>
-    <path d="M53,53 C44,44 38,38 32,32 C38,38 44,44 53,53Z" fill="#C4A052" opacity="0.55"/>
-    <path d="M11,53 C20,44 26,38 32,32 C26,38 20,44 11,53Z" fill="#C4A052" opacity="0.55"/>
-    <path d="M11,11 C20,20 26,26 32,32 C26,26 20,20 11,11Z" fill="#C4A052" opacity="0.55"/>
-    <circle cx="32" cy="32" r="10" fill="#F5F0E8" stroke="#8B1C1C" stroke-width="1"/>
-    <circle cx="32" cy="32" r="6"  fill="#C4A052"/>
-    <circle cx="32" cy="32" r="3"  fill="#7A1515"/>
+    <!-- ── Frame 3: thick inner maroon line ── -->
+    <rect x="27" y="27" width="740" height="1069" fill="none" stroke="#8B0000" stroke-width="2.8"/>
 
-    <!-- ── TOP-RIGHT ── -->
-    <rect x="729" y="0" width="65" height="65" fill="#F5F0E8"/>
-    <circle cx="762" cy="32" r="30" fill="none" stroke="#7A1515" stroke-width="1.8"/>
-    <circle cx="762" cy="32" r="22" fill="none" stroke="#C4A052" stroke-width="0.9"/>
-    <path d="M762,2  C767,14 767,22 762,32 C757,22 757,14 762,2Z"  fill="#8B1C1C" opacity="0.5"/>
-    <path d="M762,62 C767,50 767,42 762,32 C757,42 757,50 762,62Z" fill="#8B1C1C" opacity="0.5"/>
-    <path d="M732,32 C744,27 752,27 762,32 C752,37 744,37 732,32Z" fill="#8B1C1C" opacity="0.5"/>
-    <path d="M792,32 C780,27 772,27 762,32 C772,37 780,37 792,32Z" fill="#8B1C1C" opacity="0.5"/>
-    <path d="M783,11 C774,20 768,26 762,32 C768,26 774,19 783,11Z" fill="#C4A052" opacity="0.55"/>
-    <path d="M783,53 C774,44 768,38 762,32 C768,38 774,44 783,53Z" fill="#C4A052" opacity="0.55"/>
-    <path d="M741,53 C750,44 756,38 762,32 C756,38 750,44 741,53Z" fill="#C4A052" opacity="0.55"/>
-    <path d="M741,11 C750,20 756,26 762,32 C756,26 750,20 741,11Z" fill="#C4A052" opacity="0.55"/>
-    <circle cx="762" cy="32" r="10" fill="#F5F0E8" stroke="#8B1C1C" stroke-width="1"/>
-    <circle cx="762" cy="32" r="6"  fill="#C4A052"/>
-    <circle cx="762" cy="32" r="3"  fill="#7A1515"/>
+    <!-- ── Frame 4: thin gold accent just inside frame 3 ── -->
+    <rect x="32" y="32" width="730" height="1059" fill="none" stroke="#C49A22" stroke-width="0.6"/>
 
-    <!-- ── BOTTOM-LEFT ── -->
-    <rect x="0" y="495" width="65" height="65" fill="#F5F0E8"/>
-    <circle cx="32" cy="528" r="30" fill="none" stroke="#7A1515" stroke-width="1.8"/>
-    <circle cx="32" cy="528" r="22" fill="none" stroke="#C4A052" stroke-width="0.9"/>
-    <path d="M32,498 C37,510 37,518 32,528 C27,518 27,510 32,498Z" fill="#8B1C1C" opacity="0.5"/>
-    <path d="M32,558 C37,546 37,538 32,528 C27,538 27,546 32,558Z" fill="#8B1C1C" opacity="0.5"/>
-    <path d="M2,528  C14,523 22,523 32,528 C22,533 14,533 2,528Z"  fill="#8B1C1C" opacity="0.5"/>
-    <path d="M62,528 C50,523 42,523 32,528 C42,533 50,533 62,528Z" fill="#8B1C1C" opacity="0.5"/>
-    <path d="M53,507 C44,516 38,522 32,528 C38,522 44,515 53,507Z" fill="#C4A052" opacity="0.55"/>
-    <path d="M53,549 C44,540 38,534 32,528 C38,534 44,540 53,549Z" fill="#C4A052" opacity="0.55"/>
-    <path d="M11,549 C20,540 26,534 32,528 C26,534 20,540 11,549Z" fill="#C4A052" opacity="0.55"/>
-    <path d="M11,507 C20,516 26,522 32,528 C26,522 20,516 11,507Z" fill="#C4A052" opacity="0.55"/>
-    <circle cx="32" cy="528" r="10" fill="#F5F0E8" stroke="#8B1C1C" stroke-width="1"/>
-    <circle cx="32" cy="528" r="6"  fill="#C4A052"/>
-    <circle cx="32" cy="528" r="3"  fill="#7A1515"/>
+    <!-- ── Corner rosettes (centered at frame-3 corners) ── -->
+    <use href="#ros" transform="translate(27,27)"/>
+    <use href="#ros" transform="translate(767,27)"/>
+    <use href="#ros" transform="translate(27,1096)"/>
+    <use href="#ros" transform="translate(767,1096)"/>
 
-    <!-- ── BOTTOM-RIGHT ── -->
-    <rect x="729" y="495" width="65" height="65" fill="#F5F0E8"/>
-    <circle cx="762" cy="528" r="30" fill="none" stroke="#7A1515" stroke-width="1.8"/>
-    <circle cx="762" cy="528" r="22" fill="none" stroke="#C4A052" stroke-width="0.9"/>
-    <path d="M762,498 C767,510 767,518 762,528 C757,518 757,510 762,498Z" fill="#8B1C1C" opacity="0.5"/>
-    <path d="M762,558 C767,546 767,538 762,528 C757,538 757,546 762,558Z" fill="#8B1C1C" opacity="0.5"/>
-    <path d="M732,528 C744,523 752,523 762,528 C752,533 744,533 732,528Z" fill="#8B1C1C" opacity="0.5"/>
-    <path d="M792,528 C780,523 772,523 762,528 C772,533 780,533 792,528Z" fill="#8B1C1C" opacity="0.5"/>
-    <path d="M783,507 C774,516 768,522 762,528 C768,522 774,515 783,507Z" fill="#C4A052" opacity="0.55"/>
-    <path d="M783,549 C774,540 768,534 762,528 C768,534 774,540 783,549Z" fill="#C4A052" opacity="0.55"/>
-    <path d="M741,549 C750,540 756,534 762,528 C756,534 750,540 741,549Z" fill="#C4A052" opacity="0.55"/>
-    <path d="M741,507 C750,516 756,522 762,528 C756,522 750,516 741,507Z" fill="#C4A052" opacity="0.55"/>
-    <circle cx="762" cy="528" r="10" fill="#F5F0E8" stroke="#8B1C1C" stroke-width="1"/>
-    <circle cx="762" cy="528" r="6"  fill="#C4A052"/>
-    <circle cx="762" cy="528" r="3"  fill="#7A1515"/>
+    <!-- ── Side midpoint ornaments (on gold line, midpoints) ── -->
+    <use href="#mid" transform="translate(397,19)"/>
+    <use href="#mid" transform="translate(397,1104)"/>
+    <use href="#mid" transform="translate(19,561)"/>
+    <use href="#mid" transform="translate(775,561)"/>
 
-    <!-- ═══ SIDE CENTER PROJECTING ORNAMENTS ═══ -->
-    <!-- Top center: cx=397, cy=32 -->
-    <ellipse cx="397" cy="32" rx="22" ry="30" fill="#F5F0E8"/>
-    <ellipse cx="397" cy="32" rx="20" ry="27" fill="none" stroke="#7A1515" stroke-width="1.5"/>
-    <ellipse cx="397" cy="32" rx="14" ry="20" fill="none" stroke="#C4A052" stroke-width="0.8"/>
-    <path d="M397,5  C401,14 401,22 397,32 C393,22 393,14 397,5Z"  fill="#8B1C1C" opacity="0.5"/>
-    <path d="M397,59 C401,50 401,42 397,32 C393,42 393,50 397,59Z" fill="#8B1C1C" opacity="0.5"/>
-    <path d="M375,32 C383,28 390,28 397,32 C390,36 383,36 375,32Z" fill="#C4A052" opacity="0.6"/>
-    <path d="M419,32 C411,28 404,28 397,32 C404,36 411,36 419,32Z" fill="#C4A052" opacity="0.6"/>
-    <circle cx="397" cy="32" r="5" fill="#C4A052"/>
-    <circle cx="397" cy="32" r="2.5" fill="#7A1515"/>
-
-    <!-- Bottom center: cx=397, cy=528 -->
-    <ellipse cx="397" cy="528" rx="22" ry="30" fill="#F5F0E8"/>
-    <ellipse cx="397" cy="528" rx="20" ry="27" fill="none" stroke="#7A1515" stroke-width="1.5"/>
-    <ellipse cx="397" cy="528" rx="14" ry="20" fill="none" stroke="#C4A052" stroke-width="0.8"/>
-    <path d="M397,501 C401,510 401,518 397,528 C393,518 393,510 397,501Z" fill="#8B1C1C" opacity="0.5"/>
-    <path d="M397,555 C401,546 401,538 397,528 C393,538 393,546 397,555Z" fill="#8B1C1C" opacity="0.5"/>
-    <path d="M375,528 C383,524 390,524 397,528 C390,532 383,532 375,528Z" fill="#C4A052" opacity="0.6"/>
-    <path d="M419,528 C411,524 404,524 397,528 C404,532 411,532 419,528Z" fill="#C4A052" opacity="0.6"/>
-    <circle cx="397" cy="528" r="5" fill="#C4A052"/>
-    <circle cx="397" cy="528" r="2.5" fill="#7A1515"/>
-
-    <!-- Left center: cx=32, cy=280 -->
-    <ellipse cx="32" cy="280" rx="30" ry="22" fill="#F5F0E8"/>
-    <ellipse cx="32" cy="280" rx="27" ry="20" fill="none" stroke="#7A1515" stroke-width="1.5"/>
-    <ellipse cx="32" cy="280" rx="20" ry="14" fill="none" stroke="#C4A052" stroke-width="0.8"/>
-    <path d="M5,280  C14,276 22,276 32,280 C22,284 14,284 5,280Z"  fill="#8B1C1C" opacity="0.5"/>
-    <path d="M59,280 C50,276 42,276 32,280 C42,284 50,284 59,280Z" fill="#8B1C1C" opacity="0.5"/>
-    <path d="M32,258 C28,266 28,273 32,280 C36,273 36,266 32,258Z" fill="#C4A052" opacity="0.6"/>
-    <path d="M32,302 C28,294 28,287 32,280 C36,287 36,294 32,302Z" fill="#C4A052" opacity="0.6"/>
-    <circle cx="32" cy="280" r="5" fill="#C4A052"/>
-    <circle cx="32" cy="280" r="2.5" fill="#7A1515"/>
-
-    <!-- Right center: cx=762, cy=280 -->
-    <ellipse cx="762" cy="280" rx="30" ry="22" fill="#F5F0E8"/>
-    <ellipse cx="762" cy="280" rx="27" ry="20" fill="none" stroke="#7A1515" stroke-width="1.5"/>
-    <ellipse cx="762" cy="280" rx="20" ry="14" fill="none" stroke="#C4A052" stroke-width="0.8"/>
-    <path d="M735,280 C744,276 752,276 762,280 C752,284 744,284 735,280Z" fill="#8B1C1C" opacity="0.5"/>
-    <path d="M789,280 C780,276 772,276 762,280 C772,284 780,284 789,280Z" fill="#8B1C1C" opacity="0.5"/>
-    <path d="M762,258 C758,266 758,273 762,280 C766,273 766,266 762,258Z" fill="#C4A052" opacity="0.6"/>
-    <path d="M762,302 C758,294 758,287 762,280 C766,287 766,294 762,302Z" fill="#C4A052" opacity="0.6"/>
-    <circle cx="762" cy="280" r="5" fill="#C4A052"/>
-    <circle cx="762" cy="280" r="2.5" fill="#7A1515"/>
-
-    <!-- ═══ INNER BORDER LINES ═══ -->
-    <rect x="65" y="65" width="664" height="430" fill="none" stroke="#7A1515" stroke-width="2.2"/>
-    <rect x="69" y="69" width="656" height="422" fill="none" stroke="#C4A052" stroke-width="0.9"/>
-
-    <!-- ═══ CONTENT BACKGROUND ═══ -->
-    <rect x="72" y="72" width="650" height="416" fill="#FEFCF7"/>
+    <!-- Content background -->
+    <rect x="33" y="33" width="728" height="1057" fill="white"/>
   </svg>
 
-  <!-- ═══════════════════ CERTIFICATE CONTENT ═══════════════════ -->
+  <!-- ═══ CONTENT ═══ -->
   <div class="content">
 
-    <div style="text-align:center; margin-bottom:0.5mm;">
-      <div class="bismillah">بِسْمِ اللَّهِ الرَّحْمَنِ الرَّحِيمِ</div>
-      <div class="divider">
-        <div class="line"></div>
-        <div class="orn">☽ ✦ ☾</div>
-        <div class="line"></div>
-      </div>
-      <div class="title-en">Marriage Certificate</div>
-      <div class="title-ar">شَهَادَةُ الزَّوَاج</div>
-      <div class="cert-no">Certificate No: {{certificate_no}} &nbsp;|&nbsp; Marriage ID: {{marriage_id}}</div>
+    <!-- Certificate Number -->
+    <div class="cert-no">No. {{certificate_no}}</div>
+
+    <!-- Header -->
+    <div class="org-name">{{mahallu_name}}</div>
+    <div class="dept-name">Marriage Registration Office</div>
+    <div class="cert-title">Certificate of Marriage</div>
+    <div class="cert-subtitle">
+      This is to certify that the following Nikkah has been solemnized and the information has been recorded<br>
+      in the Marriage Register maintained in the office of {{mahallu_name}}.
     </div>
 
-    <div class="certify">
-      This is to certify that the following Nikah has been solemnized in accordance with Islamic Law
+    <div class="divider"></div>
+
+    <!-- Party header labels -->
+    <div class="party-header-row">
+      <div class="party-lbl">Husband Details</div>
+      <div class="party-lbl">Wife Details</div>
     </div>
 
-    <div class="body">
-      <div class="party">
-        <div class="party-label">الزَّوْج &nbsp;·&nbsp; Groom</div>
-        <div class="party-name">{{groom_name}}</div>
-        <div class="party-father">Son of &nbsp;<span>{{groom_father}}</span></div>
+    <!-- Nikkah info block -->
+    <div class="nikkah-block">
+      <div class="nikkah-cell">
+        <span class="nikkah-label">Date of Marriage</span>
+        <span class="nikkah-value">{{date}}</span>
       </div>
-      <div class="cdiv">
-        <div class="vl"></div>
-        <div style="font-size:13pt;color:#8B1C1C;">✦</div>
-        <div class="and-t">and</div>
-        <div style="font-size:13pt;color:#8B1C1C;">✦</div>
-        <div class="vl"></div>
+      <div class="nikkah-cell">
+        <span class="nikkah-label">Time of Nikkah</span>
+        <span class="nikkah-value">{{nikkah_time}}</span>
       </div>
-      <div class="party bride">
-        <div class="party-label">الزَّوْجَة &nbsp;·&nbsp; Bride</div>
-        <div class="party-name">{{bride_name}}</div>
-        <div class="party-father">Daughter of &nbsp;<span>{{bride_father}}</span></div>
+      <div class="nikkah-cell">
+        <span class="nikkah-label">Place of Marriage</span>
+        <span class="nikkah-value">{{place}}</span>
+      </div>
+      <div class="nikkah-cell">
+        <span class="nikkah-label">Nikkah Mahallu</span>
+        <span class="nikkah-value">{{nikkah_mahallu}}</span>
       </div>
     </div>
 
-    <div class="strip">
-      <div class="di"><div class="dl">Date of Nikah</div><div class="dv">{{date}}</div></div>
-      <div class="di"><div class="dl">Place</div><div class="dv">{{place}}</div></div>
-      <div class="di"><div class="dl">Contact</div><div class="dv">{{mobile}}</div></div>
+    <!-- Details table heading -->
+    <div class="table-heading">Details of Parties to the Marriage (as on the date of marriage)</div>
+
+    <!-- Details table -->
+    <table class="dtable">
+      <colgroup>
+        <col class="lbl">
+        <col class="col-h">
+        <col class="col-w">
+      </colgroup>
+      <thead>
+        <tr>
+          <td class="lbl"></td>
+          <td style="font-weight:bold; text-align:center;">Husband</td>
+          <td style="font-weight:bold; text-align:center;">Wife</td>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="lbl">Name</td>
+          <td class="col-h">{{groom_name}}</td>
+          <td class="col-w">{{bride_name}}</td>
+        </tr>
+        <tr>
+          <td class="lbl">Age and Date of Birth</td>
+          <td>{{groom_dob_age}}</td>
+          <td>{{bride_dob_age}}</td>
+        </tr>
+        <tr>
+          <td class="lbl">Permanent Address</td>
+          <td>{{groom_address}}</td>
+          <td>{{bride_address}}</td>
+        </tr>
+        <tr>
+          <td class="lbl">Father Name</td>
+          <td>{{groom_father}}</td>
+          <td>{{bride_father}}</td>
+        </tr>
+        <tr>
+          <td class="lbl">House Name</td>
+          <td>{{groom_house_name}}</td>
+          <td>{{bride_house_name}}</td>
+        </tr>
+        <tr>
+          <td class="lbl">Mahallu</td>
+          <td>{{groom_mahallu}}</td>
+          <td>{{bride_mahallu}}</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <!-- Performer -->
+    <div class="extra-row">
+      <div class="extra-field"><strong>Performer of Nikkah</strong> : {{performer_name}}</div>
+      <div class="extra-field"><strong>Designation</strong> : {{performer_designation}}</div>
     </div>
 
+    <!-- Bottom info -->
+    <div class="bottom-row">
+      <div class="bottom-field"><strong>Marriage ID</strong> &nbsp;:&nbsp; {{marriage_id}}</div>
+      <div class="bottom-field"><strong>Date of Issue</strong> &nbsp;:&nbsp; {{issue_date}}</div>
+    </div>
+
+    <!-- Footer signature -->
     <div class="footer">
-      <div class="sig"><div class="sig-line">Mahallu President</div></div>
-      <div class="seal"><div class="sc">☽</div>Official<br>Seal</div>
-      <div class="sig"><div class="sig-line">Witness</div></div>
+      <div class="sig-block">
+        <div class="sig-space"></div>
+        <div class="sig-line">Authorized Signatory</div>
+        <div class="sig-org">{{mahallu_name}}</div>
+      </div>
+    </div>
+
+    <!-- Disclaimer -->
+    <div class="disclaimer">
+      This is an official certificate issued by {{mahallu_name}}. This certificate is valid for all official purposes.<br>
+      Authenticity can be verified at the office of {{mahallu_name}}.
     </div>
 
   </div>

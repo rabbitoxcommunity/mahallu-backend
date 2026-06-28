@@ -1,7 +1,26 @@
 const Marriage = require('../models/Marriage');
-const puppeteer = require('puppeteer');
+const Tenant = require('../models/Tenant');
+const { PDFDocument, rgb, StandardFonts } = require('pdf-lib');
+const fontkit = require('@pdf-lib/fontkit');
 const fs = require('fs');
 const path = require('path');
+
+const fmtDate = (d, locale = 'en-IN') =>
+  d ? new Date(d).toLocaleDateString(locale, { day: '2-digit', month: '2-digit', year: 'numeric' }) : '-';
+
+const calcAge = (dob, ref) => {
+  if (!dob) return null;
+  const b = new Date(dob), r = ref ? new Date(ref) : new Date();
+  let age = r.getFullYear() - b.getFullYear();
+  if (r.getMonth() < b.getMonth() || (r.getMonth() === b.getMonth() && r.getDate() < b.getDate())) age--;
+  return age;
+};
+
+const dobAge = (dob, ref) => {
+  if (!dob) return '-';
+  const age = calcAge(dob, ref);
+  return age !== null ? `${age}, ${fmtDate(dob)}` : fmtDate(dob);
+};
 
 const generateMarriageId = async (tenant_id) => {
   const last = await Marriage.findOne({ tenant_id }, { marriage_id: 1 }).sort({ created_at: -1 });
@@ -15,77 +34,272 @@ const generateCertificateNo = async (tenant_id) => {
   return `CERT-${String(num + 1).padStart(3, '0')}`;
 };
 
-// Helper function to generate PDF
+// Helper: word-wrap text to fit within maxWidth (handles embedded newlines)
+const wrapText = (str, maxWidth, size, f) => {
+  if (!str || str === '-') return [str || '-'];
+  // Split on newlines first, then word-wrap each segment
+  const segments = String(str).replace(/\r\n/g, '\n').split('\n');
+  const lines = [];
+  for (const seg of segments) {
+    const words = seg.split(' ');
+    let line = '';
+    for (const w of words) {
+      if (!w) continue;
+      const test = line ? `${line} ${w}` : w;
+      if (f.widthOfTextAtSize(test, size) > maxWidth && line) {
+        lines.push(line);
+        line = w;
+      } else {
+        line = test;
+      }
+    }
+    if (line) lines.push(line);
+  }
+  return lines.length ? lines : ['-'];
+};
+
+// Generate PDF by drawing onto the PDF template
 const generateMarriagePDF = async (marriage) => {
   try {
-    console.log('Starting PDF generation for:', marriage.certificate_no);
-    
-    const browser = await puppeteer.launch({
-      headless: 'new',
-      args: ['--no-sandbox', '--disable-setuid-sandbox']
-    });
-    console.log('Puppeteer browser launched');
-    
-    const page = await browser.newPage();
-    console.log('New page created');
+    const tenant = await Tenant.findById(marriage.tenant_id).select('name');
+    const mahalluName = tenant?.name || 'Mahallu';
 
-    // Read HTML template
-    const templatePath = path.join(__dirname, '../templates/marriageCertificate.html');
-    console.log('Template path:', templatePath);
-    let html = fs.readFileSync(templatePath, 'utf8');
-    console.log('Template read successfully');
+    const v     = (x) => x || '-';
+    const da    = (dob) => dobAge(dob, marriage.date);
+    const iDate = new Date().toLocaleDateString('en-IN', { day: '2-digit', month: '2-digit', year: 'numeric' });
+    const nDate = fmtDate(marriage.date);
 
-    // Format date
-    const formattedDate = new Date(marriage.date).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    });
+    // ── Load template ──
+    const tplBytes = fs.readFileSync(path.join(__dirname, '../templates/marriageTemplate.pdf'));
+    const pdfDoc   = await PDFDocument.load(tplBytes);
+    pdfDoc.registerFontkit(fontkit);
+    const page     = pdfDoc.getPages()[0];
+    const { width } = page.getSize(); // 595.276 × 841.89
 
-    // Replace placeholders
-    html = html.replace(/{{marriage_id}}/g, marriage.marriage_id);
-    html = html.replace(/{{certificate_no}}/g, marriage.certificate_no);
-    html = html.replace(/{{groom_name}}/g, marriage.groom_name);
-    html = html.replace(/{{groom_father}}/g, marriage.groom_father);
-    html = html.replace(/{{bride_name}}/g, marriage.bride_name);
-    html = html.replace(/{{bride_father}}/g, marriage.bride_father);
-    html = html.replace(/{{date}}/g, formattedDate);
-    html = html.replace(/{{place}}/g, marriage.place);
-    html = html.replace(/{{mobile}}/g, marriage.mobile);
-    console.log('Placeholders replaced');
+    // ── Fonts (Georgia — system TTF, full glyph set) ──
+    const sysF      = '/System/Library/Fonts/Supplemental';
+    const fReg      = await pdfDoc.embedFont(fs.readFileSync(`${sysF}/Georgia.ttf`));
+    const fBold     = await pdfDoc.embedFont(fs.readFileSync(`${sysF}/Georgia Bold.ttf`));
+    const fItal     = await pdfDoc.embedFont(fs.readFileSync(`${sysF}/Georgia Italic.ttf`));
+    const fBoldItal = await pdfDoc.embedFont(fs.readFileSync(`${sysF}/Georgia Bold Italic.ttf`));
 
-    // Set content
-    await page.setContent(html, { waitUntil: 'domcontentloaded' });
-    console.log('Content set');
+    // ── Colours ──
+    const cBlack   = rgb(0.08, 0.08, 0.08);
+    const cDarkRed = rgb(0.52, 0.07, 0.07);
+    const cGray    = rgb(0.38, 0.38, 0.38);
+    const cAccent  = rgb(0.65, 0.40, 0.30);
 
-    // Create PDF directory if it doesn't exist
+    // ── Layout: narrower margins to avoid border overlap ──
+    const L  = 95;
+    const R  = width - 95;
+    const CW = R - L;   // ≈ 405 pt
+
+    // ── Primitives ──
+    const tx = (str, x, y, size, f = fReg, color = cBlack) =>
+      page.drawText(String(str || '-'), { x, y, size, font: f, color });
+
+    const ctrX = (str, size, f = fReg) =>
+      (width - f.widthOfTextAtSize(str, size)) / 2;
+
+    const hLine = (y, x1 = L, x2 = R, t = 0.6, color = cAccent) =>
+      page.drawLine({ start: { x: x1, y }, end: { x: x2, y }, thickness: t, color });
+
+    // ── Dynamic y cursor ──
+    let cy = 0; // set per section below
+
+    const KW  = 110; // key column width (pt)
+    const FS  = 8.5; // base font size
+    const ROW = 14;  // normal row gap
+    const LH  = 11;  // wrapped extra line height
+
+    // Draw "Key  :  Value", advance cy, return lines used
+    const kv = (key, val) => {
+      tx(key, L, cy, FS, fBold, cGray);
+      tx(':', L + KW, cy, FS, fBold, cGray);
+      const valX = L + KW + 9;
+      const valW = R - valX;
+      const lines = wrapText(String(val || '-'), valW, FS, fReg);
+      lines.forEach((ln, i) => tx(ln, valX, cy - i * LH, FS, fReg, cBlack));
+      cy -= ROW + (lines.length - 1) * LH;
+    };
+
+    // Section heading with flanking lines
+    const sectionHead = (title) => {
+      cy -= 6;
+      const tw  = fBold.widthOfTextAtSize(title, 10);
+      const mid = width / 2;
+      tx(title, mid - tw / 2, cy, 10, fBold, cDarkRed);
+      hLine(cy + 4, L, mid - tw / 2 - 6, 0.7, cDarkRed);
+      hLine(cy + 4, mid + tw / 2 + 6, R, 0.7, cDarkRed);
+      cy -= 18;
+    };
+
+    // ════════════════════════════════════════
+    // HEADER  (between template's two ornamental lines)
+    // ════════════════════════════════════════
+
+    // ── Mahallu name: double flanking lines + filled circle ornaments ──
+    const orgStr = mahalluName.toUpperCase();
+    const orgFS  = 14;
+    const orgW   = fBold.widthOfTextAtSize(orgStr, orgFS);
+    const orgX   = (width - orgW) / 2;
+    const orgY   = 750;
+    const lineY  = orgY + 6;
+
+    // Left: thick line + thin line below + filled dot at end
+    hLine(lineY,     L,           orgX - 12, 1.2, cDarkRed);
+    hLine(lineY - 3, L,           orgX - 12, 0.4, rgb(0.65, 0.20, 0.20));
+    page.drawEllipse({ x: orgX - 7, y: lineY - 1.5, xScale: 3.5, yScale: 3.5, color: cDarkRed });
+
+    tx(orgStr, orgX, orgY, orgFS, fBold, cDarkRed);
+
+    // Right: same mirrored
+    hLine(lineY,     orgX + orgW + 12, R, 1.2, cDarkRed);
+    hLine(lineY - 3, orgX + orgW + 12, R, 0.4, rgb(0.65, 0.20, 0.20));
+    page.drawEllipse({ x: orgX + orgW + 7, y: lineY - 1.5, xScale: 3.5, yScale: 3.5, color: cDarkRed });
+
+    // Subtle thin underline beneath org name
+    hLine(orgY - 2, orgX + 4, orgX + orgW - 4, 0.4, rgb(0.65, 0.20, 0.20));
+
+    // ── Certificate of Marriage: bold-italic, double underline ──
+    const titleStr = 'Certificate of Marriage';
+    const titleW   = fBoldItal.widthOfTextAtSize(titleStr, 12);
+    const titleX   = (width - titleW) / 2;
+    const titleY   = 727;
+    tx(titleStr, titleX, titleY, 12, fBoldItal, cBlack);
+    hLine(titleY - 2.5, titleX,      titleX + titleW,      1.0, cBlack);
+    hLine(titleY - 5.5, titleX + 12, titleX + titleW - 12, 0.4, cGray);
+
+    // ════════════════════════════════════════
+    // CERT INFO BAR  (styled box: No. + Date of Issue)
+    // ════════════════════════════════════════
+    const barH   = 16;
+    const barBot = 686;
+    const barTop = barBot + barH;
+
+    page.drawRectangle({ x: L, y: barBot, width: CW, height: barH, color: rgb(0.97, 0.93, 0.89) });
+    hLine(barTop, L, R, 1.2, cDarkRed);
+    hLine(barBot, L, R, 0.6, cDarkRed);
+    // Thin inner accent line just below top border
+    hLine(barTop - 2.5, L, R, 0.3, rgb(0.75, 0.40, 0.30));
+    // Center vertical divider
+    page.drawLine({ start: { x: width / 2, y: barBot + 2 }, end: { x: width / 2, y: barTop - 2 }, thickness: 0.5, color: cAccent });
+
+    tx(`No. ${marriage.certificate_no}`, L + 7, barBot + 5, 8, fBold, cDarkRed);
+    const idStr = `Date of Issue : ${iDate}`;
+    tx(idStr, R - fBold.widthOfTextAtSize(idStr, 8) - 7, barBot + 5, 8, fBold, cDarkRed);
+
+    // ── Subtitle ──
+    const sub = `This is to certify that the following Nikkah has been solemnized and recorded in the Marriage Register maintained by ${mahalluName}.`;
+    const subLines = wrapText(sub, CW, 7.5, fItal);
+    const subY0 = barBot - 13;
+    subLines.forEach((ln, i) => tx(ln, ctrX(ln, 7.5, fItal), subY0 - i * 10, 7.5, fItal, cGray));
+
+    // ── Triple decorative divider ──
+    const divY = subY0 - subLines.length * 10 - 7;
+    hLine(divY + 4, L,      R,      0.4, cAccent);
+    hLine(divY,     L + 8,  R - 8,  1.8, cDarkRed);
+    hLine(divY - 4, L,      R,      0.4, cAccent);
+
+    // ════════════════════════════════════════
+    // NIKKAH DETAILS  (2 × 2 key-value grid)
+    // ════════════════════════════════════════
+    const half = CW / 2;
+    const L2   = L + half + 8;
+    const KW2  = 72;
+
+    const kv2 = (key, val, ox) => {
+      tx(key, ox, cy, 7.5, fBold, cGray);
+      tx(':', ox + KW2, cy, 7.5, fBold, cGray);
+      tx(String(val || '-'), ox + KW2 + 7, cy, 7.5, fReg, cBlack);
+    };
+
+    cy = divY - 16;
+    kv2('Date of Nikkah',  nDate,                      L);
+    kv2('Time',            v(marriage.nikkah_time),     L2);
+    cy -= 14;
+    kv2('Place of Nikkah', v(marriage.place),           L);
+    kv2('Nikkah Mahallu',  v(marriage.nikkah_mahallu),  L2);
+
+    hLine(cy - 8, L, R, 0.7, cAccent);
+
+    // ════════════════════════════════════════
+    // HUSBAND DETAILS
+    // ════════════════════════════════════════
+    cy -= 22;
+    sectionHead('Husband Details');
+    kv('Full Name',          v(marriage.groom_name));
+    kv('Age and DOB',        da(marriage.groom_dob));
+    kv('Father Name',        v(marriage.groom_father));
+    kv('House Name',         v(marriage.groom_house_name));
+    kv('Mahallu',            v(marriage.groom_mahallu));
+    kv('Permanent Address',  v(marriage.groom_address));
+
+    hLine(cy - 6, L, R, 0.7, cAccent);
+
+    // ════════════════════════════════════════
+    // WIFE DETAILS
+    // ════════════════════════════════════════
+    cy -= 20;
+    sectionHead('Wife Details');
+    kv('Full Name',          v(marriage.bride_name));
+    kv('Age and DOB',        da(marriage.bride_dob));
+    kv('Father Name',        v(marriage.bride_father));
+    kv('House Name',         v(marriage.bride_house_name));
+    kv('Mahallu',            v(marriage.bride_mahallu));
+    kv('Permanent Address',  v(marriage.bride_address));
+
+    hLine(cy - 6, L, R, 0.7, cAccent);
+
+    // ════════════════════════════════════════
+    // PERFORMER
+    // ════════════════════════════════════════
+    cy -= 18;
+    kv('Performer of Nikkah', v(marriage.performer_name));
+    kv('Designation',         v(marriage.performer_designation));
+
+    // ════════════════════════════════════════
+    // BOTTOM INFO
+    // ════════════════════════════════════════
+    cy -= 4;
+    hLine(cy, L, R, 0.5, cAccent);
+    cy -= 12;
+    tx(`Marriage ID : ${marriage.marriage_id}`, L, cy, 7.5, fReg, cGray);
+    const cnStr = `Certificate No : ${marriage.certificate_no}`;
+    tx(cnStr, R - fReg.widthOfTextAtSize(cnStr, 7.5), cy, 7.5, fReg, cGray);
+
+    // ════════════════════════════════════════
+    // SIGNATURE  (bottom-right) + blank seal space (bottom-left)
+    // ════════════════════════════════════════
+    const sigY  = cy - 55;
+    const sealY = sigY - 8;   // vertical centre of the blank seal space
+
+    // "Seal" label — light dotted placeholder so the printer knows where to stamp
+    const sealLbl = '[ Seal ]';
+    const sealLblW = fItal.widthOfTextAtSize(sealLbl, 7);
+    tx(sealLbl, L + 58 - sealLblW / 2, sealY - 40, 7, fItal, rgb(0.75, 0.75, 0.75));
+
+    const sigX1 = R - 150;
+    hLine(sigY, sigX1, R, 0.8, cBlack);
+    const slbl = 'Authorized Signatory';
+    tx(slbl, sigX1 + (150 - fBold.widthOfTextAtSize(slbl, 8)) / 2, sigY - 11, 8, fBold, cBlack);
+    tx(mahalluName, sigX1 + (150 - fReg.widthOfTextAtSize(mahalluName, 7.5)) / 2, sigY - 22, 7.5, fReg, cGray);
+
+    // Disclaimer
+    const disc = `This is an official certificate issued by ${mahalluName}. Valid for all official purposes.`;
+    tx(disc, ctrX(disc, 6.5, fItal), sealY - 56, 6.5, fItal, rgb(0.55, 0.55, 0.55));
+
+    // ════════════════════════════════════════
+    // SAVE
+    // ════════════════════════════════════════
     const pdfDir = path.join(__dirname, '../public/certificates');
-    if (!fs.existsSync(pdfDir)) {
-      fs.mkdirSync(pdfDir, { recursive: true });
-    }
-    console.log('PDF directory ready:', pdfDir);
+    if (!fs.existsSync(pdfDir)) fs.mkdirSync(pdfDir, { recursive: true });
+    const pdfBytes = await pdfDoc.save();
+    fs.writeFileSync(path.join(pdfDir, `${marriage.certificate_no}.pdf`), pdfBytes);
 
-    // Generate PDF
-    const pdfPath = path.join(pdfDir, `${marriage.certificate_no}.pdf`);
-    console.log('Generating PDF at:', pdfPath);
-    
-    await page.pdf({
-      path: pdfPath,
-      format: 'A5',
-      landscape: true,
-      printBackground: true,
-      margin: { top: '0', right: '0', bottom: '0', left: '0' }
-    });
-    console.log('PDF generated successfully');
-
-    await browser.close();
-    console.log('Browser closed');
-
-    // Return relative URL
     return `/certificates/${marriage.certificate_no}.pdf`;
   } catch (error) {
     console.error('Error generating PDF:', error);
-    console.error('Error stack:', error.stack);
     throw error;
   }
 };
@@ -96,14 +310,11 @@ const generateMarriagePDF = async (marriage) => {
 exports.createMarriage = async (req, res) => {
   try {
     const {
-      groom_name,
-      groom_father,
-      bride_name,
-      bride_father,
-      date,
-      place,
-      mobile,
-      notes
+      groom_name, groom_father, groom_dob, groom_house_name, groom_mahallu, groom_address,
+      bride_name, bride_father, bride_dob, bride_house_name, bride_mahallu, bride_address,
+      date, nikkah_time, place, nikkah_mahallu,
+      performer_name, performer_designation,
+      mobile, notes
     } = req.body;
 
     const tenant_id = req.user.tenant_id;
@@ -117,14 +328,11 @@ exports.createMarriage = async (req, res) => {
       tenant_id,
       marriage_id,
       certificate_no,
-      groom_name,
-      groom_father,
-      bride_name,
-      bride_father,
-      date,
-      place,
-      mobile,
-      notes,
+      groom_name, groom_father, groom_dob, groom_house_name, groom_mahallu, groom_address,
+      bride_name, bride_father, bride_dob, bride_house_name, bride_mahallu, bride_address,
+      date, nikkah_time, place, nikkah_mahallu,
+      performer_name, performer_designation,
+      mobile, notes,
       created_by: req.user.id
     });
 
@@ -219,30 +427,21 @@ exports.getMarriageById = async (req, res) => {
 exports.updateMarriage = async (req, res) => {
   try {
     const {
-      groom_name,
-      groom_father,
-      bride_name,
-      bride_father,
-      date,
-      place,
-      mobile,
-      notes
+      groom_name, groom_father, groom_dob, groom_house_name, groom_mahallu, groom_address,
+      bride_name, bride_father, bride_dob, bride_house_name, bride_mahallu, bride_address,
+      date, nikkah_time, place, nikkah_mahallu,
+      performer_name, performer_designation,
+      mobile, notes
     } = req.body;
 
     const marriage = await Marriage.findOneAndUpdate(
+      { _id: req.params.id, tenant_id: req.user.tenant_id },
       {
-        _id: req.params.id,
-        tenant_id: req.user.tenant_id
-      },
-      {
-        groom_name,
-        groom_father,
-        bride_name,
-        bride_father,
-        date,
-        place,
-        mobile,
-        notes
+        groom_name, groom_father, groom_dob, groom_house_name, groom_mahallu, groom_address,
+        bride_name, bride_father, bride_dob, bride_house_name, bride_mahallu, bride_address,
+        date, nikkah_time, place, nikkah_mahallu,
+        performer_name, performer_designation,
+        mobile, notes
       },
       { new: true, runValidators: true }
     );

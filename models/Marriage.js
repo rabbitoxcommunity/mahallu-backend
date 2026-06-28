@@ -15,37 +15,26 @@ const marriageSchema = new mongoose.Schema({
     type: String,
     required: true
   },
-  groom_name: {
-    type: String,
-    required: true
-  },
-  groom_father: {
-    type: String,
-    required: true
-  },
-  bride_name: {
-    type: String,
-    required: true
-  },
-  bride_father: {
-    type: String,
-    required: true
-  },
-  date: {
-    type: Date,
-    required: true
-  },
-  place: {
-    type: String,
-    required: true
-  },
-  mobile: {
-    type: String,
-    required: true
-  },
-  notes: {
-    type: String
-  },
+  groom_name: { type: String, required: true },
+  groom_father: { type: String, required: true },
+  groom_dob: { type: Date },
+  groom_house_name: { type: String },
+  groom_mahallu: { type: String },
+  groom_address: { type: String },
+  bride_name: { type: String, required: true },
+  bride_father: { type: String, required: true },
+  bride_dob: { type: Date },
+  bride_house_name: { type: String },
+  bride_mahallu: { type: String },
+  bride_address: { type: String },
+  date: { type: Date, required: true },
+  nikkah_time: { type: String },
+  place: { type: String, required: true },
+  nikkah_mahallu: { type: String },
+  performer_name: { type: String },
+  performer_designation: { type: String },
+  mobile: { type: String },
+  notes: { type: String },
   pdf_url: {
     type: String
   },
