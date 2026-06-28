@@ -4,7 +4,9 @@ const Announcement        = require('../models/Announcement');
 const Result              = require('../models/Result');
 const Member              = require('../models/Member');
 const Marriage            = require('../models/Marriage');
+const DeathRegistry       = require('../models/DeathRegistry');
 const { generateMarriagePDF } = require('./marriageController');
+const { generateDeathCertPDF } = require('./deathController');
 const path                = require('path');
 const fs                  = require('fs');
 
@@ -83,7 +85,7 @@ exports.getPublicAnnouncements = async (req, res) => {
 
     const [announcements, total] = await Promise.all([
       Announcement.find(query)
-        .select('title category description published_at attachment_url')
+        .select('title category body published_at attachment_url')
         .sort({ published_at: -1 })
         .skip(skip)
         .limit(limit),
@@ -273,6 +275,69 @@ exports.getAnnouncementCategories = async (req, res) => {
     });
 
     res.json({ data: cats.filter(Boolean) });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+// GET /api/portal/death-certificates/search?t=slug&q=003
+exports.searchDeathCertificates = async (req, res) => {
+  try {
+    const tenant = await resolveTenant(req.query.t);
+    if (!tenant) return res.status(404).json({ message: 'Mahallu not found' });
+
+    const settings = await PublicPortalSettings.findOne({ tenant_id: tenant._id });
+    if (settings && !settings.death_certificate)
+      return res.status(403).json({ message: 'Death certificate download not enabled' });
+
+    const q = (req.query.q || '').trim();
+    if (!q) return res.json({ data: [] });
+
+    const regex = new RegExp(q, 'i');
+    const records = await DeathRegistry.find({
+      tenant_id: tenant._id,
+      $or: [
+        { certificate_no: regex },
+        { death_id:       regex },
+        { name:           regex },
+        { father_name:    regex },
+      ],
+    })
+      .select('certificate_no death_id name father_name date_of_death age gender')
+      .sort({ date_of_death: -1 })
+      .limit(20);
+
+    res.json({ data: records });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+// GET /api/portal/death-certificate/:cert_id?t=slug
+exports.getDeathCertificate = async (req, res) => {
+  try {
+    const tenant = await resolveTenant(req.query.t);
+    if (!tenant) return res.status(404).json({ message: 'Mahallu not found' });
+
+    const settings = await PublicPortalSettings.findOne({ tenant_id: tenant._id });
+    if (settings && !settings.death_certificate)
+      return res.status(403).json({ message: 'Death certificate download not enabled' });
+
+    const id = req.params.cert_id;
+    const record = await DeathRegistry.findOne({
+      tenant_id: tenant._id,
+      $or: [{ certificate_no: id }, { death_id: id }],
+    });
+    if (!record) return res.status(404).json({ message: 'Certificate not found' });
+
+    const certNo   = record.certificate_no || record.death_id;
+    const filePath = path.join(__dirname, '../public/certificates', `${certNo}.pdf`);
+
+    if (!fs.existsSync(filePath)) {
+      await generateDeathCertPDF(record);
+    }
+
+    res.download(filePath, `${certNo}.pdf`);
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
