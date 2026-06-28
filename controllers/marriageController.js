@@ -304,6 +304,8 @@ const generateMarriagePDF = async (marriage) => {
   }
 };
 
+exports.generateMarriagePDF = generateMarriagePDF;
+
 // @desc    Create marriage record (admin)
 // @route   POST /api/admin/marriages/create
 // @access  Private
