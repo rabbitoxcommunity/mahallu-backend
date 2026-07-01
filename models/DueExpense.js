@@ -1,13 +1,13 @@
 const mongoose = require('mongoose');
 
-// Template / subscription — created ONCE per income source
-const dueBasedIncomeSchema = new mongoose.Schema({
+// Template / subscription — created ONCE per recurring expense (salary, rent, etc.)
+const dueExpenseSchema = new mongoose.Schema({
     tenant_id:    { type: mongoose.Schema.Types.ObjectId, ref: 'Tenant',   required: true, index: true },
-    income_code:  { type: String, required: true },
+    expense_code: { type: String, required: true },
     category:     { type: String, required: true, index: true },
-    source_name:  { type: String, required: true, trim: true },
+    paid_to:      { type: String, required: true, trim: true },
     whatsapp:     { type: String, trim: true, default: '' },
-    amount_due:   { type: Number, required: true, min: 0 },   // monthly recurring amount
+    amount:       { type: Number, required: true, min: 0 },   // monthly recurring amount
     start_month:  { type: Number, required: true, min: 1, max: 12 },
     start_year:   { type: Number, required: true },
     notes:        { type: String, default: '' },
@@ -16,7 +16,7 @@ const dueBasedIncomeSchema = new mongoose.Schema({
     updated_by:   { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
 }, { timestamps: { createdAt: 'created_at', updatedAt: 'updated_at' } });
 
-dueBasedIncomeSchema.index({ tenant_id: 1, income_code: 1 }, { unique: true });
-dueBasedIncomeSchema.index({ tenant_id: 1, category: 1 });
+dueExpenseSchema.index({ tenant_id: 1, expense_code: 1 }, { unique: true });
+dueExpenseSchema.index({ tenant_id: 1, category: 1 });
 
-module.exports = mongoose.model('DueBasedIncome', dueBasedIncomeSchema);
+module.exports = mongoose.model('DueExpense', dueExpenseSchema);

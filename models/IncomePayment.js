@@ -7,9 +7,9 @@ const incomePaymentSchema = new mongoose.Schema({
         required: true,
         index: true
     },
-    due_income_id: {
+    entry_id: {
         type: mongoose.Schema.Types.ObjectId,
-        ref: 'DueBasedIncome',
+        ref: 'DueBasedEntry',
         required: true,
         index: true
     },
@@ -50,7 +50,6 @@ const incomePaymentSchema = new mongoose.Schema({
     timestamps: { createdAt: 'created_at', updatedAt: 'updated_at' }
 });
 
-// Compound index
-incomePaymentSchema.index({ tenant_id: 1, due_income_id: 1, payment_date: -1 });
+incomePaymentSchema.index({ tenant_id: 1, entry_id: 1, payment_date: -1 });
 
 module.exports = mongoose.model('IncomePayment', incomePaymentSchema);

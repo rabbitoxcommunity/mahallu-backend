@@ -1,212 +1,288 @@
 const mongoose = require('mongoose');
 const DueBasedIncome = require('../models/DueBasedIncome');
+const DueBasedEntry = require('../models/DueBasedEntry');
 const DirectIncome = require('../models/DirectIncome');
 const IncomePayment = require('../models/IncomePayment');
 const { generateDueIncomeCode, generateDirectIncomeCode, generateReceiptNo, updateOverdueStatus } = require('../utils/incomeUtils');
 
+// ==================== HELPERS ====================
+
+/**
+ * Auto-generate monthly entries for a template from its start date up to (upToMonth, upToYear).
+ * Already-existing entries are skipped (idempotent).
+ */
+const generateEntriesUpTo = async (template, upToMonth, upToYear) => {
+    const existing = await DueBasedEntry.find({
+        tenant_id: template.tenant_id,
+        template_id: template._id,
+    }).select('month year');
+
+    const existingSet = new Set(existing.map(e => `${e.year}-${e.month}`));
+
+    const toCreate = [];
+    let m = template.start_month;
+    let y = template.start_year;
+    const now = new Date();
+
+    while (y < upToYear || (y === upToYear && m <= upToMonth)) {
+        const key = `${y}-${m}`;
+        if (!existingSet.has(key)) {
+            const dueDate = new Date(y, m - 1, 28);
+            const status = dueDate < now ? 'overdue' : 'unpaid';
+            toCreate.push({
+                tenant_id: template.tenant_id,
+                template_id: template._id,
+                month: m,
+                year: y,
+                amount_due: template.amount_due,
+                amount_paid: 0,
+                balance: template.amount_due,
+                status,
+                due_date: dueDate,
+            });
+        }
+        m++;
+        if (m > 12) { m = 1; y++; }
+    }
+
+    if (toCreate.length > 0) {
+        await DueBasedEntry.insertMany(toCreate, { ordered: false });
+    }
+};
+
 // ==================== DUE BASED INCOME CONTROLLERS ====================
 
-// @desc    Create due-based income record
+// @desc    Create due-based income subscription template
 // @route   POST /api/finance/income/due/create
 // @access  Private
-exports.createDueIncome = async (req, res, next) => {
+exports.createDueIncome = async (req, res) => {
     try {
         const tenant_id = req.user.tenant_id;
         const created_by = req.user.id;
 
-        const { category, source_name, month, year, amount_due, due_date, notes } = req.body;
+        const { category, source_name, whatsapp, start_month, start_year, amount_due, notes } = req.body;
 
-        console.log('Create Due Income - Request Body:', req.body);
-        console.log('Create Due Income - Amount Due:', amount_due, 'Type:', typeof amount_due);
-        
-        if (!category || !source_name || !month || !year || !amount_due || !due_date) {
+        if (!category || !source_name || !start_month || !start_year || !amount_due) {
             return res.status(400).json({ message: 'Missing required fields' });
         }
 
-        if (amount_due <= 0) {
+        if (Number(amount_due) <= 0) {
             return res.status(400).json({ message: 'Amount due must be positive' });
         }
 
         const income_code = await generateDueIncomeCode(tenant_id);
 
-        // Calculate balance and status manually
-        const amount_paid = 0;
-        const balance = amount_due - amount_paid;
-        
-                
-        let status = 'unpaid';
-        if (balance <= 0) {
-            status = 'paid';
-        } else if (amount_paid > 0) {
-            status = 'partial';
-        }
-        
-        // Check for overdue status
-        if (status !== 'paid' && new Date(due_date) < new Date()) {
-            status = 'overdue';
-        }
-
-        const income = new DueBasedIncome({
+        const template = new DueBasedIncome({
             tenant_id,
             income_code,
             category,
             source_name,
-            month,
-            year,
-            amount_due,
-            amount_paid,
-            balance,
-            due_date,
-            status,
+            whatsapp: whatsapp || '',
+            amount_due: Number(amount_due),
+            start_month: Number(start_month),
+            start_year: Number(start_year),
             notes: notes || '',
-            created_by
+            created_by,
         });
 
-        await income.save();
+        await template.save();
 
-        
-        res.status(201).json({ message: 'Due-based income created successfully', income });
+        // Auto-generate entries from start up to current month
+        const now = new Date();
+        const currentMonth = now.getMonth() + 1;
+        const currentYear = now.getFullYear();
+
+        const startM = Number(start_month);
+        const startY = Number(start_year);
+
+        // Only generate if start is not in the future
+        if (startY < currentYear || (startY === currentYear && startM <= currentMonth)) {
+            await generateEntriesUpTo(template, currentMonth, currentYear);
+        }
+
+        res.status(201).json({ message: 'Due-based income subscription created successfully', income: template });
     } catch (err) {
         console.error('Error creating due income:', err);
         res.status(500).json({ message: err.message });
     }
 };
 
-// @desc    Get all due-based income records
+// @desc    Get due-based income subscriptions with their entry for the selected month/year
 // @route   GET /api/finance/income/due
 // @access  Private
-exports.getDueIncome = async (req, res, next) => {
+exports.getDueIncome = async (req, res) => {
     try {
         const { page = 1, limit = 10, search = '', category, status, month, year } = req.query;
         const tenant_id = req.user.tenant_id;
-        const skip = (Number(page) - 1) * Number(limit);
 
-        const query = { tenant_id, is_active: true };
+        const now = new Date();
+        const viewMonth = month ? Number(month) : now.getMonth() + 1;
+        const viewYear  = year  ? Number(year)  : now.getFullYear();
+        const currentMonth = now.getMonth() + 1;
+        const currentYear  = now.getFullYear();
 
-        if (category) query.category = category;
-        if (status) query.status = status;
-        if (month) query.month = Number(month);
-        if (year) query.year = Number(year);
-
+        // Build template filter
+        const templateQuery = { tenant_id, is_active: true };
+        if (category) templateQuery.category = category;
         if (search) {
-            query.$or = [
+            templateQuery.$or = [
                 { source_name: { $regex: search, $options: 'i' } },
-                { income_code: { $regex: search, $options: 'i' } }
+                { income_code:  { $regex: search, $options: 'i' } },
             ];
         }
 
-        const incomes = await DueBasedIncome.find(query)
-            .sort({ created_at: -1 })
-            .skip(skip)
-            .limit(Number(limit));
+        const templates = await DueBasedIncome.find(templateQuery).sort({ created_at: -1 });
 
-        const total = await DueBasedIncome.countDocuments(query);
+        // Auto-generate entries up to current month for all templates
+        for (const tpl of templates) {
+            const tplStartBeforeCurrent =
+                tpl.start_year < currentYear ||
+                (tpl.start_year === currentYear && tpl.start_month <= currentMonth);
+            if (tplStartBeforeCurrent) {
+                await generateEntriesUpTo(tpl, currentMonth, currentYear);
+            }
+        }
 
-        res.json({ incomes, total, page: Number(page), pages: Math.ceil(total / Number(limit)) });
+        // Fetch entries for the requested view month/year
+        const templateIds = templates.map(t => t._id);
+        const entries = await DueBasedEntry.find({
+            tenant_id,
+            template_id: { $in: templateIds },
+            month: viewMonth,
+            year: viewYear,
+        });
+
+        const entryMap = {};
+        entries.forEach(e => { entryMap[e.template_id.toString()] = e; });
+
+        // Merge template + entry, filter by entry status if requested
+        let merged = templates.map(t => ({
+            ...t.toObject(),
+            entry: entryMap[t._id.toString()] || null,
+        }));
+
+        if (status) {
+            merged = merged.filter(t => (t.entry?.status ?? 'upcoming') === status);
+        }
+
+        const total = merged.length;
+        const skip  = (Number(page) - 1) * Number(limit);
+        const paginated = merged.slice(skip, skip + Number(limit));
+
+        res.json({
+            incomes: paginated,
+            total,
+            page: Number(page),
+            pages: Math.ceil(total / Number(limit)),
+            view_month: viewMonth,
+            view_year:  viewYear,
+        });
     } catch (err) {
         console.error('Error fetching due income:', err);
         res.status(500).json({ message: err.message });
     }
 };
 
-// @desc    Update due-based income record
+// @desc    Update due-based income template
 // @route   PUT /api/finance/income/due/:id
 // @access  Private
-exports.updateDueIncome = async (req, res, next) => {
+exports.updateDueIncome = async (req, res) => {
     try {
         const tenant_id = req.user.tenant_id;
         const { id } = req.params;
-        const { category, source_name, month, year, amount_due, due_date, notes } = req.body;
+        const { category, source_name, whatsapp, amount_due, notes } = req.body;
 
-        const income = await DueBasedIncome.findOne({ _id: id, tenant_id, is_active: true });
-        if (!income) {
-            return res.status(404).json({ message: 'Income record not found' });
+        const existing = await DueBasedIncome.findOne({ _id: id, tenant_id, is_active: true });
+        if (!existing) return res.status(404).json({ message: 'Income record not found' });
+
+        const $set = { updated_by: req.user.id };
+        if (category               !== undefined) $set.category    = category;
+        if (source_name            !== undefined) $set.source_name = source_name;
+        if (whatsapp               !== undefined) $set.whatsapp    = whatsapp;
+        if (notes                  !== undefined) $set.notes       = notes;
+        if (amount_due             !== undefined) $set.amount_due  = Number(amount_due);
+
+        await DueBasedIncome.updateOne({ _id: id }, { $set });
+
+        if (amount_due !== undefined) {
+            const now = new Date();
+            await DueBasedEntry.updateMany(
+                {
+                    tenant_id,
+                    template_id: id,
+                    status: { $in: ['unpaid', 'overdue'] },
+                    $or: [
+                        { year: { $gt: now.getFullYear() } },
+                        { year: now.getFullYear(), month: { $gte: now.getMonth() + 1 } },
+                    ],
+                },
+                { $set: { amount_due: Number(amount_due), balance: Number(amount_due) } }
+            );
         }
 
-        if (amount_due && income.amount_paid > 0) {
-            return res.status(400).json({ message: 'Cannot update amount due for records with payments' });
-        }
-
-        if (category) income.category = category;
-        if (source_name) income.source_name = source_name;
-        if (month) income.month = month;
-        if (year) income.year = year;
-        if (amount_due && income.amount_paid === 0) {
-            income.amount_due = amount_due;
-            income.balance = amount_due;
-        }
-        if (due_date) income.due_date = due_date;
-        if (notes !== undefined) income.notes = notes;
-
-        await income.save();
-
-        res.json({ message: 'Due-based income updated successfully', income });
+        const updated = await DueBasedIncome.findById(id);
+        res.json({ message: 'Due-based income updated successfully', income: updated });
     } catch (err) {
         console.error('Error updating due income:', err);
         res.status(500).json({ message: err.message });
     }
 };
 
-// @desc    Delete due-based income record (soft delete)
+// @desc    Deactivate (soft-delete) due-based income template
 // @route   DELETE /api/finance/income/due/:id
 // @access  Private
-exports.deleteDueIncome = async (req, res, next) => {
+exports.deleteDueIncome = async (req, res) => {
     try {
         const tenant_id = req.user.tenant_id;
         const { id } = req.params;
 
-        const income = await DueBasedIncome.findOne({ _id: id, tenant_id, is_active: true });
-        if (!income) {
-            return res.status(404).json({ message: 'Income record not found' });
-        }
+        const result = await DueBasedIncome.updateOne(
+            { _id: id, tenant_id, is_active: true },
+            { $set: { is_active: false } }
+        );
+        if (result.matchedCount === 0) return res.status(404).json({ message: 'Income record not found' });
 
-        if (income.amount_paid > 0) {
-            return res.status(400).json({ message: 'Cannot delete record with payments' });
-        }
+        await DueBasedEntry.updateMany(
+            { template_id: id, tenant_id },
+            { $set: { is_active: false } }
+        );
 
-        income.is_active = false;
-        await income.save();
-
-        res.json({ message: 'Due-based income deleted successfully' });
+        res.json({ message: 'Due-based income subscription deactivated successfully' });
     } catch (err) {
         console.error('Error deleting due income:', err);
         res.status(500).json({ message: err.message });
     }
 };
 
-// @desc    Mark payment for due-based income
-// @route   PUT /api/finance/income/due/pay/:id
+// @desc    Mark payment against a monthly entry
+// @route   PUT /api/finance/income/due/pay/:id   (id = entry._id)
 // @access  Private
-exports.markDuePayment = async (req, res, next) => {
+exports.markDuePayment = async (req, res) => {
     try {
         const tenant_id = req.user.tenant_id;
-        const { id } = req.params;
+        const { id } = req.params;       // entry_id
         const received_by = req.user.id;
 
         const { payment_amount, payment_method, reference_no, notes } = req.body;
 
-        if (!payment_amount || payment_amount <= 0) {
+        if (!payment_amount || Number(payment_amount) <= 0) {
             return res.status(400).json({ message: 'Payment amount must be positive' });
         }
 
-        const income = await DueBasedIncome.findOne({ _id: id, tenant_id, is_active: true });
-        if (!income) {
-            return res.status(404).json({ message: 'Income record not found' });
-        }
+        const entry = await DueBasedEntry.findOne({ _id: id, tenant_id, is_active: true });
+        if (!entry) return res.status(404).json({ message: 'Entry not found' });
 
-        const previousPaid = income.amount_paid || 0;
-        const newTotalPaid = previousPaid + Number(payment_amount);
+        const newTotalPaid = (entry.amount_paid || 0) + Number(payment_amount);
 
-        if (newTotalPaid > income.amount_due) {
+        if (newTotalPaid > entry.amount_due) {
             return res.status(400).json({
                 message: 'Payment exceeds due amount',
                 details: {
-                    amount_due: income.amount_due,
-                    previous_paid: previousPaid,
+                    amount_due: entry.amount_due,
+                    previous_paid: entry.amount_paid,
                     new_payment: Number(payment_amount),
-                    total_after_payment: newTotalPaid,
-                    excess_amount: newTotalPaid - income.amount_due
-                }
+                    excess: newTotalPaid - entry.amount_due,
+                },
             });
         }
 
@@ -214,53 +290,43 @@ exports.markDuePayment = async (req, res, next) => {
 
         const payment = new IncomePayment({
             tenant_id,
-            due_income_id: income._id,
+            entry_id: entry._id,
             payment_amount: Number(payment_amount),
             payment_method: payment_method || 'cash',
             payment_date: new Date(),
             reference_no: reference_no || '',
             notes: notes || '',
             receipt_no,
-            received_by
+            received_by,
         });
 
         await payment.save();
 
-        // Calculate new balance
-        const newBalance = income.amount_due - newTotalPaid;
-        
-        // Update status based on new balance
-        let newStatus = 'unpaid';
-        if (newBalance <= 0) {
-            newStatus = 'paid';
-        } else if (newTotalPaid > 0) {
-            newStatus = 'partial';
-        }
-        
-        // Check for overdue status
-        if (newStatus !== 'paid' && new Date(income.due_date) < new Date()) {
+        const newBalance = entry.amount_due - newTotalPaid;
+        let newStatus = newBalance <= 0 ? 'paid' : newTotalPaid > 0 ? 'partial' : 'unpaid';
+        if (newStatus !== 'paid' && entry.due_date && entry.due_date < new Date()) {
             newStatus = 'overdue';
         }
 
-        income.amount_paid = newTotalPaid;
-        income.balance = newBalance;
-        income.status = newStatus;
-        income.payment_method = payment_method || 'cash';
-        income.receipt_no = receipt_no;
-        await income.save();
+        entry.amount_paid    = newTotalPaid;
+        entry.balance        = newBalance;
+        entry.status         = newStatus;
+        entry.payment_method = payment_method || 'cash';
+        entry.receipt_no     = receipt_no;
+        await entry.save();
 
         res.json({
             message: 'Payment recorded successfully',
-            income,
+            entry,
             payment,
             payment_details: {
-                this_payment: Number(payment_amount),
-                previous_paid: previousPaid,
-                total_paid: newTotalPaid,
-                amount_due: income.amount_due,
-                remaining_amount: newBalance,
-                status: newStatus
-            }
+                this_payment:  Number(payment_amount),
+                previous_paid: entry.amount_paid - Number(payment_amount),
+                total_paid:    newTotalPaid,
+                amount_due:    entry.amount_due,
+                remaining:     newBalance,
+                status:        newStatus,
+            },
         });
     } catch (err) {
         console.error('Error marking payment:', err);
@@ -268,32 +334,50 @@ exports.markDuePayment = async (req, res, next) => {
     }
 };
 
-// @desc    Get payment history for due-based income
-// @route   GET /api/finance/income/due/history/:id
+// @desc    Get payment history for a monthly entry
+// @route   GET /api/finance/income/due/history/:id  (id = entry._id)
 // @access  Private
-exports.getDuePaymentHistory = async (req, res, next) => {
+exports.getDuePaymentHistory = async (req, res) => {
     try {
         const tenant_id = req.user.tenant_id;
-        const { id } = req.params;
+        const { id } = req.params;   // entry_id
 
-        const income = await DueBasedIncome.findOne({ _id: id, tenant_id, is_active: true });
-        if (!income) {
-            return res.status(404).json({ message: 'Income record not found' });
-        }
+        const entry = await DueBasedEntry.findOne({ _id: id, tenant_id });
+        if (!entry) return res.status(404).json({ message: 'Entry not found' });
 
-        const payments = await IncomePayment.find({ tenant_id, due_income_id: id })
+        const payments = await IncomePayment.find({ tenant_id, entry_id: id })
             .populate('received_by', 'name')
             .sort({ payment_date: -1 });
 
         res.json({
-            income_id: id,
-            income_code: income.income_code,
+            entry_id: id,
             payments,
             total_payments: payments.length,
-            total_paid: payments.reduce((sum, p) => sum + p.payment_amount, 0)
+            total_paid: payments.reduce((s, p) => s + p.payment_amount, 0),
         });
     } catch (err) {
         console.error('Error fetching payment history:', err);
+        res.status(500).json({ message: err.message });
+    }
+};
+
+// @desc    Get all monthly entries for a template (subscription history across months)
+// @route   GET /api/finance/income/due/:id/entries
+// @access  Private
+exports.getTemplateEntries = async (req, res) => {
+    try {
+        const tenant_id = req.user.tenant_id;
+        const { id } = req.params;   // template_id
+
+        const template = await DueBasedIncome.findOne({ _id: id, tenant_id });
+        if (!template) return res.status(404).json({ message: 'Template not found' });
+
+        const entries = await DueBasedEntry.find({ tenant_id, template_id: id })
+            .sort({ year: -1, month: -1 });
+
+        res.json({ template, entries });
+    } catch (err) {
+        console.error('Error fetching template entries:', err);
         res.status(500).json({ message: err.message });
     }
 };
@@ -303,35 +387,24 @@ exports.getDuePaymentHistory = async (req, res, next) => {
 // @desc    Create direct income record
 // @route   POST /api/finance/income/direct/create
 // @access  Private
-exports.createDirectIncome = async (req, res, next) => {
+exports.createDirectIncome = async (req, res) => {
     try {
         const tenant_id = req.user.tenant_id;
         const created_by = req.user.id;
 
         const { category, source_name, amount, date, payment_method, reference_no, description } = req.body;
 
-        console.log('Direct Income - Raw Request Body:', req.body);
-        console.log('Direct Income - Parsed Amount:', amount, 'Type:', typeof amount);
-        
         if (!category || !source_name || !amount) {
             return res.status(400).json({ message: 'Missing required fields' });
         }
 
-        if (amount <= 0) {
-            return res.status(400).json({ message: 'Amount must be positive' });
+        const parsedAmount = Number(amount);
+        if (isNaN(parsedAmount) || parsedAmount <= 0) {
+            return res.status(400).json({ message: 'Amount must be a positive number' });
         }
 
         const income_code = await generateDirectIncomeCode(tenant_id);
-        const receipt_no = await generateReceiptNo(tenant_id);
-
-        const parsedAmount = Number(amount);
-        console.log('Direct Income - Raw Amount:', amount, 'Type:', typeof amount);
-        console.log('Direct Income - Parsed Amount:', parsedAmount, 'Type:', typeof parsedAmount);
-        
-        // Validate the parsed amount
-        if (isNaN(parsedAmount)) {
-            return res.status(400).json({ message: 'Invalid amount format' });
-        }
+        const receipt_no  = await generateReceiptNo(tenant_id);
 
         const income = new DirectIncome({
             tenant_id,
@@ -339,21 +412,15 @@ exports.createDirectIncome = async (req, res, next) => {
             category,
             source_name,
             amount: parsedAmount,
-            date: date ? new Date(date) : new Date(),
+            date:   date ? new Date(date) : new Date(),
             payment_method: payment_method || 'cash',
-            reference_no: reference_no || '',
-            description: description || '',
+            reference_no:   reference_no   || '',
+            description:    description    || '',
             receipt_no,
-            created_by
-        });
-
-        console.log('Direct Income - Before Save:', {
-            amount_field: income.amount,
-            amount_type: typeof income.amount
+            created_by,
         });
 
         await income.save();
-
         res.status(201).json({ message: 'Direct income recorded successfully', income });
     } catch (err) {
         console.error('Error creating direct income:', err);
@@ -364,7 +431,7 @@ exports.createDirectIncome = async (req, res, next) => {
 // @desc    Get all direct income records
 // @route   GET /api/finance/income/direct
 // @access  Private
-exports.getDirectIncome = async (req, res, next) => {
+exports.getDirectIncome = async (req, res) => {
     try {
         const { page = 1, limit = 10, search = '', category, payment_method, month, year } = req.query;
         const tenant_id = req.user.tenant_id;
@@ -372,41 +439,30 @@ exports.getDirectIncome = async (req, res, next) => {
 
         const query = { tenant_id, is_active: true };
 
-        if (category) query.category = category;
+        if (category)       query.category       = category;
         if (payment_method) query.payment_method = payment_method;
 
         if (month || year) {
-            const dateQuery = {};
-            if (year) {
-                const startDate = new Date(year, 0, 1);
-                const endDate = new Date(parseInt(year) + 1, 0, 1);
-                dateQuery.$gte = startDate;
-                dateQuery.$lt = endDate;
+            const now = new Date();
+            const y   = year  ? Number(year)  : now.getFullYear();
+            const m   = month ? Number(month) : null;
+            if (m) {
+                query.date = { $gte: new Date(y, m - 1, 1), $lt: new Date(y, m, 1) };
+            } else {
+                query.date = { $gte: new Date(y, 0, 1), $lt: new Date(y + 1, 0, 1) };
             }
-            if (month) {
-                const yearFilter = year || new Date().getFullYear();
-                const startDate = new Date(yearFilter, month - 1, 1);
-                const endDate = new Date(yearFilter, month, 1);
-                dateQuery.$gte = startDate;
-                dateQuery.$lt = endDate;
-            }
-            query.date = dateQuery;
         }
 
         if (search) {
             query.$or = [
                 { source_name: { $regex: search, $options: 'i' } },
                 { income_code: { $regex: search, $options: 'i' } },
-                { description: { $regex: search, $options: 'i' } }
+                { description: { $regex: search, $options: 'i' } },
             ];
         }
 
-        const incomes = await DirectIncome.find(query)
-            .sort({ date: -1 })
-            .skip(skip)
-            .limit(Number(limit));
-
-        const total = await DirectIncome.countDocuments(query);
+        const incomes = await DirectIncome.find(query).sort({ date: -1 }).skip(skip).limit(Number(limit));
+        const total   = await DirectIncome.countDocuments(query);
 
         res.json({ incomes, total, page: Number(page), pages: Math.ceil(total / Number(limit)) });
     } catch (err) {
@@ -418,27 +474,24 @@ exports.getDirectIncome = async (req, res, next) => {
 // @desc    Update direct income record
 // @route   PUT /api/finance/income/direct/:id
 // @access  Private
-exports.updateDirectIncome = async (req, res, next) => {
+exports.updateDirectIncome = async (req, res) => {
     try {
         const tenant_id = req.user.tenant_id;
         const { id } = req.params;
         const { category, source_name, amount, date, payment_method, reference_no, description } = req.body;
 
         const income = await DirectIncome.findOne({ _id: id, tenant_id, is_active: true });
-        if (!income) {
-            return res.status(404).json({ message: 'Income record not found' });
-        }
+        if (!income) return res.status(404).json({ message: 'Income record not found' });
 
-        if (category) income.category = category;
-        if (source_name) income.source_name = source_name;
-        if (amount) income.amount = Number(amount);
-        if (date) income.date = new Date(date);
-        if (payment_method) income.payment_method = payment_method;
+        if (category)              income.category       = category;
+        if (source_name)           income.source_name    = source_name;
+        if (amount)                income.amount         = Number(amount);
+        if (date)                  income.date           = new Date(date);
+        if (payment_method)        income.payment_method = payment_method;
         if (reference_no !== undefined) income.reference_no = reference_no;
-        if (description !== undefined) income.description = description;
+        if (description  !== undefined) income.description  = description;
 
         await income.save();
-
         res.json({ message: 'Direct income updated successfully', income });
     } catch (err) {
         console.error('Error updating direct income:', err);
@@ -449,15 +502,13 @@ exports.updateDirectIncome = async (req, res, next) => {
 // @desc    Delete direct income record (soft delete)
 // @route   DELETE /api/finance/income/direct/:id
 // @access  Private
-exports.deleteDirectIncome = async (req, res, next) => {
+exports.deleteDirectIncome = async (req, res) => {
     try {
         const tenant_id = req.user.tenant_id;
         const { id } = req.params;
 
         const income = await DirectIncome.findOne({ _id: id, tenant_id, is_active: true });
-        if (!income) {
-            return res.status(404).json({ message: 'Income record not found' });
-        }
+        if (!income) return res.status(404).json({ message: 'Income record not found' });
 
         income.is_active = false;
         await income.save();
@@ -474,66 +525,61 @@ exports.deleteDirectIncome = async (req, res, next) => {
 // @desc    Get income summary
 // @route   GET /api/finance/income/summary
 // @access  Private
-exports.getIncomeSummary = async (req, res, next) => {
+exports.getIncomeSummary = async (req, res) => {
     try {
         const tenant_id = req.user.tenant_id;
         const { year, month } = req.query;
 
-        const now = new Date();
-        const currentYear = year ? Number(year) : now.getFullYear();
+        const now          = new Date();
+        const currentYear  = year  ? Number(year)  : now.getFullYear();
         const currentMonth = month ? Number(month) : now.getMonth() + 1;
 
-        // Due-based income summary
-        const dueQuery = { 
-            tenant_id: new mongoose.Types.ObjectId(tenant_id), 
-            is_active: true 
+        // --- Due-based: aggregate from DueBasedEntry ---
+        const dueEntryQuery = {
+            tenant_id: new mongoose.Types.ObjectId(tenant_id),
+            is_active: true,
         };
-        if (year) dueQuery.year = currentYear;
-        if (month) dueQuery.month = currentMonth;
+        if (year)  dueEntryQuery.year  = currentYear;
+        if (month) dueEntryQuery.month = currentMonth;
 
-        const dueSummary = await DueBasedIncome.aggregate([
-            { $match: dueQuery },
+        const dueSummary = await DueBasedEntry.aggregate([
+            { $match: dueEntryQuery },
             {
                 $group: {
                     _id: null,
-                    total_due: { $sum: '$amount_due' },
-                    total_paid: { $sum: '$amount_paid' },
+                    total_due:     { $sum: '$amount_due' },
+                    total_paid:    { $sum: '$amount_paid' },
                     total_pending: { $sum: '$balance' },
-                    paid_count: { $sum: { $cond: [{ $eq: ['$status', 'paid'] }, 1, 0] } },
+                    paid_count:    { $sum: { $cond: [{ $eq: ['$status', 'paid'] },    1, 0] } },
                     partial_count: { $sum: { $cond: [{ $eq: ['$status', 'partial'] }, 1, 0] } },
-                    unpaid_count: { $sum: { $cond: [{ $eq: ['$status', 'unpaid'] }, 1, 0] } },
-                    overdue_count: { $sum: { $cond: [{ $eq: ['$status', 'overdue'] }, 1, 0] } }
-                }
-            }
+                    unpaid_count:  { $sum: { $cond: [{ $eq: ['$status', 'unpaid'] },  1, 0] } },
+                    overdue_count: { $sum: { $cond: [{ $eq: ['$status', 'overdue'] }, 1, 0] } },
+                },
+            },
         ]);
 
-        // Direct income summary
-        const directQuery = { 
-            tenant_id: new mongoose.Types.ObjectId(tenant_id), 
-            is_active: true 
+        // --- Direct income ---
+        const directQuery = {
+            tenant_id: new mongoose.Types.ObjectId(tenant_id),
+            is_active: true,
         };
         if (year || month) {
-            const dateQuery = {};
             if (year && month) {
-                // Filter by specific year and month
-                const startDate = new Date(currentYear, currentMonth - 1, 1);
-                const endDate = new Date(currentYear, currentMonth, 1);
-                dateQuery.$gte = startDate;
-                dateQuery.$lt = endDate;
+                directQuery.date = {
+                    $gte: new Date(currentYear, currentMonth - 1, 1),
+                    $lt:  new Date(currentYear, currentMonth, 1),
+                };
             } else if (year) {
-                // Filter by entire year
-                const startDate = new Date(currentYear, 0, 1);
-                const endDate = new Date(currentYear + 1, 0, 1);
-                dateQuery.$gte = startDate;
-                dateQuery.$lt = endDate;
-            } else if (month) {
-                // Filter by month for current year
-                const startDate = new Date(now.getFullYear(), currentMonth - 1, 1);
-                const endDate = new Date(now.getFullYear(), currentMonth, 1);
-                dateQuery.$gte = startDate;
-                dateQuery.$lt = endDate;
+                directQuery.date = {
+                    $gte: new Date(currentYear, 0, 1),
+                    $lt:  new Date(currentYear + 1, 0, 1),
+                };
+            } else {
+                directQuery.date = {
+                    $gte: new Date(now.getFullYear(), currentMonth - 1, 1),
+                    $lt:  new Date(now.getFullYear(), currentMonth, 1),
+                };
             }
-            directQuery.date = dateQuery;
         }
 
         const directSummary = await DirectIncome.aggregate([
@@ -542,71 +588,59 @@ exports.getIncomeSummary = async (req, res, next) => {
                 $group: {
                     _id: null,
                     total_income: { $sum: '$amount' },
-                    cash_income: { $sum: { $cond: [{ $eq: ['$payment_method', 'cash'] }, '$amount', 0] } },
-                    upi_income: { $sum: { $cond: [{ $eq: ['$payment_method', 'upi'] }, '$amount', 0] } },
-                    bank_income: { $sum: { $cond: [{ $eq: ['$payment_method', 'bank'] }, '$amount', 0] } }
-                }
-            }
+                    cash_income:  { $sum: { $cond: [{ $eq: ['$payment_method', 'cash'] }, '$amount', 0] } },
+                    upi_income:   { $sum: { $cond: [{ $eq: ['$payment_method', 'upi']  }, '$amount', 0] } },
+                    bank_income:  { $sum: { $cond: [{ $eq: ['$payment_method', 'bank'] }, '$amount', 0] } },
+                },
+            },
         ]);
 
-        // Category breakdown for direct income
         const categoryBreakdown = await DirectIncome.aggregate([
             { $match: directQuery },
-            {
-                $group: {
-                    _id: '$category',
-                    total: { $sum: '$amount' },
-                    count: { $sum: 1 }
-                }
-            },
-            { $sort: { total: -1 } }
+            { $group: { _id: '$category', total: { $sum: '$amount' }, count: { $sum: 1 } } },
+            { $sort: { total: -1 } },
         ]);
 
-        const dueData = dueSummary[0] || {
-            total_due: 0, total_paid: 0, total_pending: 0,
-            paid_count: 0, partial_count: 0, unpaid_count: 0, overdue_count: 0
-        };
+        const dueData    = dueSummary[0]    || { total_due: 0, total_paid: 0, total_pending: 0, paid_count: 0, partial_count: 0, unpaid_count: 0, overdue_count: 0 };
+        const directData = directSummary[0] || { total_income: 0, cash_income: 0, upi_income: 0, bank_income: 0 };
 
-        const directData = directSummary[0] || {
-            total_income: 0, cash_income: 0, upi_income: 0, bank_income: 0
-        };
-
-        // Calculate this month's income
+        // This-month income
         const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-        const thisMonthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+        const thisMonthEnd   = new Date(now.getFullYear(), now.getMonth() + 1, 1);
 
-        const thisMonthDue = await DueBasedIncome.aggregate([
-            {
-                $match: {
-                    tenant_id,
-                    is_active: true,
-                    year: now.getFullYear(),
-                    month: now.getMonth() + 1
-                }
-            },
-            { $group: { _id: null, total_paid: { $sum: '$amount_paid' } } }
-        ]);
-
-        const thisMonthDirect = await DirectIncome.aggregate([
-            {
-                $match: {
-                    tenant_id,
-                    is_active: true,
-                    date: { $gte: thisMonthStart, $lt: thisMonthEnd }
-                }
-            },
-            { $group: { _id: null, total: { $sum: '$amount' } } }
+        const [thisMonthDue, thisMonthDirect] = await Promise.all([
+            DueBasedEntry.aggregate([
+                {
+                    $match: {
+                        tenant_id: new mongoose.Types.ObjectId(tenant_id),
+                        is_active: true,
+                        year:  now.getFullYear(),
+                        month: now.getMonth() + 1,
+                    },
+                },
+                { $group: { _id: null, total_paid: { $sum: '$amount_paid' } } },
+            ]),
+            DirectIncome.aggregate([
+                {
+                    $match: {
+                        tenant_id: new mongoose.Types.ObjectId(tenant_id),
+                        is_active: true,
+                        date: { $gte: thisMonthStart, $lt: thisMonthEnd },
+                    },
+                },
+                { $group: { _id: null, total: { $sum: '$amount' } } },
+            ]),
         ]);
 
         const thisMonthIncome = (thisMonthDue[0]?.total_paid || 0) + (thisMonthDirect[0]?.total || 0);
 
         res.json({
-            due_based: dueData,
-            direct: directData,
-            total_income: dueData.total_paid + directData.total_income,
+            due_based:         dueData,
+            direct:            directData,
+            total_income:      dueData.total_paid + directData.total_income,
             this_month_income: thisMonthIncome,
-            pending_amount: dueData.total_pending,
-            category_breakdown: categoryBreakdown
+            pending_amount:    dueData.total_pending,
+            category_breakdown: categoryBreakdown,
         });
     } catch (err) {
         console.error('Error fetching income summary:', err);
@@ -614,10 +648,10 @@ exports.getIncomeSummary = async (req, res, next) => {
     }
 };
 
-// @desc    Update overdue status
+// @desc    Update overdue status for due-based entries
 // @route   POST /api/finance/income/update-overdue
 // @access  Private
-exports.updateOverdueStatus = async (req, res, next) => {
+exports.updateOverdueStatus = async (req, res) => {
     try {
         const tenant_id = req.user.tenant_id;
         const result = await updateOverdueStatus(tenant_id);

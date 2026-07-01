@@ -1,6 +1,7 @@
 const Counter = require('../models/Counter');
 const generateSequence = require('./generateSequence');
 const DueBasedIncome = require('../models/DueBasedIncome');
+const DueBasedEntry = require('../models/DueBasedEntry');
 const DirectIncome = require('../models/DirectIncome');
 
 // Initialize counter from existing records if it hasn't been set up yet
@@ -59,21 +60,17 @@ const updateOverdueStatus = async (tenant_id) => {
     try {
         const today = new Date();
 
-        const overdueIncomes = await DueBasedIncome.find({
-            tenant_id,
-            status: { $in: ['unpaid', 'partial'] },
-            due_date: { $lt: today },
-            is_active: true
-        });
+        const result = await DueBasedEntry.updateMany(
+            {
+                tenant_id,
+                status: { $in: ['unpaid', 'partial'] },
+                due_date: { $lt: today },
+                is_active: true,
+            },
+            { $set: { status: 'overdue' } }
+        );
 
-        const updatePromises = overdueIncomes.map(income => {
-            income.status = 'overdue';
-            return income.save();
-        });
-
-        await Promise.all(updatePromises);
-
-        return { updated_count: overdueIncomes.length };
+        return { updated_count: result.modifiedCount };
     } catch (error) {
         console.error('Error updating overdue status:', error);
         throw error;

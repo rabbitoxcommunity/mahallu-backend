@@ -8,6 +8,7 @@ const {
     deleteDueIncome,
     markDuePayment,
     getDuePaymentHistory,
+    getTemplateEntries,
     // Direct Income
     createDirectIncome,
     getDirectIncome,
@@ -20,44 +21,24 @@ const {
 
 // ==================== DUE BASED INCOME ROUTES ====================
 
-// Create due-based income
-router.post("/due/create", auth, createDueIncome);
-
-// Get all due-based income
-router.get("/due", auth, getDueIncome);
-
-// Update due-based income
-router.put("/due/:id", auth, updateDueIncome);
-
-// Delete due-based income (soft delete)
-router.delete("/due/:id", auth, deleteDueIncome);
-
-// Mark payment for due-based income
-router.put("/due/pay/:id", auth, markDuePayment);
-
-// Get payment history for due-based income
-router.get("/due/history/:id", auth, getDuePaymentHistory);
+router.post("/due/create",             auth, createDueIncome);
+router.get("/due",                     auth, getDueIncome);
+router.get("/due/:id/entries",         auth, getTemplateEntries);   // all monthly entries for a template
+router.put("/due/:id",                 auth, updateDueIncome);
+router.delete("/due/:id",              auth, deleteDueIncome);
+router.put("/due/pay/:id",             auth, markDuePayment);       // id = entry._id
+router.get("/due/history/:id",         auth, getDuePaymentHistory); // id = entry._id
 
 // ==================== DIRECT INCOME ROUTES ====================
 
-// Create direct income
-router.post("/direct/create", auth, createDirectIncome);
-
-// Get all direct income
-router.get("/direct", auth, getDirectIncome);
-
-// Update direct income
-router.put("/direct/:id", auth, updateDirectIncome);
-
-// Delete direct income (soft delete)
-router.delete("/direct/:id", auth, deleteDirectIncome);
+router.post("/direct/create",  auth, createDirectIncome);
+router.get("/direct",          auth, getDirectIncome);
+router.put("/direct/:id",      auth, updateDirectIncome);
+router.delete("/direct/:id",   auth, deleteDirectIncome);
 
 // ==================== SUMMARY & DASHBOARD ROUTES ====================
 
-// Get income summary
-router.get("/summary", auth, getIncomeSummary);
-
-// Update overdue status
+router.get("/summary",         auth, getIncomeSummary);
 router.post("/update-overdue", auth, updateOverdueStatus);
 
 module.exports = router;
