@@ -2,6 +2,7 @@ const Tenant              = require('../models/Tenant');
 const PublicPortalSettings= require('../models/PublicPortalSettings');
 const Announcement        = require('../models/Announcement');
 const Result              = require('../models/Result');
+const AcademicYear        = require('../models/AcademicYear');
 const Member              = require('../models/Member');
 const Marriage            = require('../models/Marriage');
 const DeathRegistry       = require('../models/DeathRegistry');
@@ -113,9 +114,16 @@ exports.getPublicResults = async (req, res) => {
     if (settings && !settings.results)
       return res.status(403).json({ message: 'Results not enabled' });
 
+    const lockedYear = await AcademicYear.findOne({ tenant_id: tenant._id, is_portal_locked: true, is_active: true });
+
+    if (!lockedYear) {
+      return res.json({ data: [], locked_academic_year: null });
+    }
+
     const results = await Result.find({
-      tenant_id:    tenant._id,
-      is_published: true,
+      tenant_id:         tenant._id,
+      is_published:      true,
+      academic_year_id:  lockedYear._id,
     })
       .select('student_name subjects total_max_marks total_obtained_marks percentage overall_grade is_pass teacher_remarks principal_remarks updatedAt')
       .populate('madrasa_id',      'name')
@@ -126,8 +134,10 @@ exports.getPublicResults = async (req, res) => {
       .limit(200);
 
     // Group by madrasa + class + result_type + academic_year
+    // Skip results whose referenced documents (academic year, madrasa, class) were deleted
     const groups = {};
     for (const r of results) {
+      if (!r.academic_year_id) continue;
       const key = [
         r.madrasa_id?._id,
         r.class_id?._id,
@@ -161,7 +171,7 @@ exports.getPublicResults = async (req, res) => {
       });
     }
 
-    res.json({ data: Object.values(groups) });
+    res.json({ data: Object.values(groups), locked_academic_year: lockedYear.name });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
@@ -182,14 +192,19 @@ exports.searchBloodDonors = async (req, res) => {
     else return res.status(400).json({ message: 'blood_group is required' });
 
     const members = await Member.find(query)
-      .select('full_name blood_group')
+      .select('full_name blood_group contact_number house_id')
+      .populate('house_id', 'address')
       .sort({ full_name: 1 })
       .limit(100);
 
-    // Strip house-level contact unless admin enabled it
+    const showContact = !!settings.blood_donor_show_contact;
     const data = members.map(m => ({
       name:        m.full_name,
       blood_group: m.blood_group,
+      ...(showContact ? {
+        ...(m.contact_number ? { phone: m.contact_number } : {}),
+        ...(m.house_id?.address ? { address: m.house_id.address } : {}),
+      } : {}),
     }));
 
     res.json({ data });

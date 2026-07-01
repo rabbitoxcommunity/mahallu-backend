@@ -8,6 +8,7 @@ router.use(auth);
 router.get('/academic-years/select', c.getAcademicYearsForSelect);
 router.get('/academic-years', c.getAcademicYears);
 router.post('/academic-years', c.createAcademicYear);
+router.patch('/academic-years/:id/lock', c.lockAcademicYear);
 router.put('/academic-years/:id', c.updateAcademicYear);
 router.delete('/academic-years/:id', c.deleteAcademicYear);
 

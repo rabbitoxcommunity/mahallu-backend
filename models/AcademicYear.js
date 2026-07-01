@@ -6,6 +6,7 @@ const AcademicYearSchema = new mongoose.Schema({
     name: { type: String, required: true, trim: true },
     status: { type: String, enum: ['active', 'inactive'], default: 'active' },
     is_active: { type: Boolean, default: true },
+    is_portal_locked: { type: Boolean, default: false },
     created_by: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
     updated_by: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
 }, { timestamps: true });

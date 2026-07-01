@@ -265,3 +265,18 @@ exports.deleteAcademicYear = async (req, res) => {
         res.json({ message: 'Academic year deleted' });
     } catch (err) { res.status(500).json({ message: err.message }); }
 };
+
+exports.lockAcademicYear = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const tenant_id = req.user.tenant_id;
+        const year = await AcademicYear.findOne({ _id: id, tenant_id, is_active: true });
+        if (!year) return res.status(404).json({ message: 'Academic year not found' });
+        const newLockState = !year.is_portal_locked;
+        await AcademicYear.updateMany({ tenant_id }, { is_portal_locked: false });
+        if (newLockState) {
+            await AcademicYear.findByIdAndUpdate(id, { is_portal_locked: true, updated_by: req.user.id });
+        }
+        res.json({ message: newLockState ? 'Academic year locked for portal' : 'Academic year unlocked', is_portal_locked: newLockState });
+    } catch (err) { res.status(500).json({ message: err.message }); }
+};

@@ -135,7 +135,7 @@ exports.publishResult = async (req, res) => {
 
 exports.deleteResult = async (req, res) => {
     try {
-        await Result.findOneAndUpdate({ _id: req.params.id, tenant_id: req.user.tenant_id }, { is_active: false });
+        await Result.findOneAndDelete({ _id: req.params.id, tenant_id: req.user.tenant_id });
         res.json({ message: 'Result deleted' });
     } catch (err) { res.status(500).json({ message: err.message }); }
 };
