@@ -1,6 +1,21 @@
 const Expense = require('../models/Expense');
 const Counter = require('../models/Counter');
+const Tenant = require('../models/Tenant');
 const generateSequence = require('../utils/generateSequence');
+const { uploadToR2 } = require('../utils/r2Client');
+const path = require('path');
+
+// Uploads a receipt file to R2 under a tenant-scoped folder and returns the public URL.
+const uploadReceipt = async (tenant_id, voucher_no, file) => {
+  const tenant = await Tenant.findById(tenant_id).select('slug');
+  const tenantFolder = tenant?.slug || tenant_id.toString();
+  const ext = path.extname(file.originalname) || '';
+  const key = `expenses/${tenantFolder}/${voucher_no}${ext}`;
+  return uploadToR2(key, file.buffer, {
+    contentType: file.mimetype,
+    downloadName: `${voucher_no}${ext}`
+  });
+};
 
 const generateVoucherNo = async (tenant_id) => {
   const existing = await Counter.findOne({ tenant_id, type: 'expense' });
@@ -132,17 +147,13 @@ exports.createExpense = async (req, res, next) => {
       notes
     } = req.body || {};
 
+    const voucher_no = await generateVoucherNo(req.user.tenant_id);
+
     // Handle file upload
     let bill_file = null;
     if (req.file) {
-      bill_file = {
-        data: req.file.buffer,
-        contentType: req.file.mimetype,
-        filename: req.file.originalname
-      };
+      bill_file = await uploadReceipt(req.user.tenant_id, voucher_no, req.file);
     }
-
-    const voucher_no = await generateVoucherNo(req.user.tenant_id);
 
     const expense = await Expense.create({
       voucher_no,
@@ -188,11 +199,12 @@ exports.updateExpense = async (req, res, next) => {
     // Handle file upload
     let bill_file = undefined;
     if (req.file) {
-      bill_file = {
-        data: req.file.buffer,
-        contentType: req.file.mimetype,
-        filename: req.file.originalname
-      };
+      const existing = await Expense.findOne(
+        { _id: req.params.id, tenant_id: req.user.tenant_id },
+        { voucher_no: 1 }
+      );
+      if (!existing) return res.status(404).json({ message: 'Expense not found' });
+      bill_file = await uploadReceipt(req.user.tenant_id, existing.voucher_no, req.file);
     }
 
     const updateData = {

@@ -8,8 +8,6 @@ const Marriage            = require('../models/Marriage');
 const DeathRegistry       = require('../models/DeathRegistry');
 const { generateMarriagePDF } = require('./marriageController');
 const { generateDeathCertPDF } = require('./deathController');
-const path                = require('path');
-const fs                  = require('fs');
 
 // ── Resolve tenant_id from slug query param ──────────────────────────────────
 const resolveTenant = async (slug) => {
@@ -271,14 +269,14 @@ exports.getMarriageCertificate = async (req, res) => {
     });
     if (!marriage) return res.status(404).json({ message: 'Certificate not found' });
 
-    const filePath = path.join(__dirname, '../public/certificates', `${marriage.certificate_no}.pdf`);
-
-    // Auto-generate PDF if it doesn't exist on disk yet
-    if (!fs.existsSync(filePath)) {
-      await generateMarriagePDF(marriage);
+    let pdfUrl = marriage.pdf_url;
+    if (!pdfUrl) {
+      pdfUrl = await generateMarriagePDF(marriage);
+      marriage.pdf_url = pdfUrl;
+      await marriage.save();
     }
 
-    res.download(filePath, `${marriage.certificate_no}.pdf`);
+    res.redirect(pdfUrl);
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
@@ -352,14 +350,14 @@ exports.getDeathCertificate = async (req, res) => {
     });
     if (!record) return res.status(404).json({ message: 'Certificate not found' });
 
-    const certNo   = record.certificate_no || record.death_id;
-    const filePath = path.join(__dirname, '../public/certificates', `${certNo}.pdf`);
-
-    if (!fs.existsSync(filePath)) {
-      await generateDeathCertPDF(record);
+    let pdfUrl = record.pdf_url;
+    if (!pdfUrl) {
+      pdfUrl = await generateDeathCertPDF(record);
+      record.pdf_url = pdfUrl;
+      await record.save();
     }
 
-    res.download(filePath, `${certNo}.pdf`);
+    res.redirect(pdfUrl);
   } catch (err) {
     res.status(500).json({ message: err.message });
   }

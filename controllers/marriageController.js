@@ -1,8 +1,9 @@
 const Marriage = require('../models/Marriage');
 const Tenant = require('../models/Tenant');
-const puppeteer = require('puppeteer');
 const fs = require('fs');
 const path = require('path');
+const { fillTemplate, getBrowser } = require('../utils/pdfTemplate');
+const { uploadToR2 } = require('../utils/r2Client');
 
 const fmtDate = (d, locale = 'en-IN') =>
   d ? new Date(d).toLocaleDateString(locale, { day: '2-digit', month: '2-digit', year: 'numeric' }) : '-';
@@ -33,38 +34,11 @@ const generateCertificateNo = async (tenant_id) => {
   return `CERT-${String(num + 1).padStart(3, '0')}`;
 };
 
-// Helper: escape HTML special chars before interpolating into the template
-const esc = (str) =>
-  String(str ?? '-')
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
-
-// Fill {{placeholder}} tokens in the certificate HTML template
-const fillTemplate = (tpl, data) =>
-  tpl.replace(/{{(\w+)}}/g, (_, key) => esc(data[key] ?? '-'));
-
-// Reuse one headless Chromium instance across requests instead of paying
-// ~1-2s browser-launch cost on every certificate generation.
-let browserPromise = null;
-const getBrowser = async () => {
-  if (!browserPromise) {
-    browserPromise = puppeteer.launch({ headless: 'new' });
-  }
-  const browser = await browserPromise;
-  if (!browser.isConnected()) {
-    browserPromise = puppeteer.launch({ headless: 'new' });
-    return browserPromise;
-  }
-  return browser;
-};
-
 // Generate PDF by rendering the HTML certificate template with Puppeteer
 const generateMarriagePDF = async (marriage) => {
   let page;
   try {
-    const tenant = await Tenant.findById(marriage.tenant_id).select('name nameMalayalam address regNo');
+    const tenant = await Tenant.findById(marriage.tenant_id).select('name nameMalayalam address regNo slug');
     const mahalluName = tenant?.name || 'Mahallu';
 
     const iDate = new Date().toLocaleDateString('en-IN', { day: '2-digit', month: '2-digit', year: 'numeric' });
@@ -113,12 +87,7 @@ const generateMarriagePDF = async (marriage) => {
     page = await browser.newPage();
     await page.setContent(html, { waitUntil: 'networkidle0' });
 
-    const pdfDir = path.join(__dirname, '../public/certificates');
-    if (!fs.existsSync(pdfDir)) fs.mkdirSync(pdfDir, { recursive: true });
-    const pdfPath = path.join(pdfDir, `${marriage.certificate_no}.pdf`);
-
-    await page.pdf({
-      path: pdfPath,
+    const pdfBuffer = await page.pdf({
       width: '210mm',
       height: '297mm',
       printBackground: true,
@@ -126,7 +95,10 @@ const generateMarriagePDF = async (marriage) => {
       tagged: false // skip accessibility tag tree — not needed, saves ~10KB
     });
 
-    return `/certificates/${marriage.certificate_no}.pdf`;
+    const tenantFolder = tenant?.slug || marriage.tenant_id.toString();
+    return await uploadToR2(`certificates/${tenantFolder}/marriage/${marriage.certificate_no}.pdf`, pdfBuffer, {
+      downloadName: `${marriage.certificate_no}.pdf`
+    });
   } catch (error) {
     console.error('Error generating PDF:', error);
     throw error;

@@ -85,6 +85,14 @@ const DeathRegistrySchema = new mongoose.Schema(
         janaza_time: {
             type: String,
         },
+        janaza_place: {
+            type: String,
+            trim: true,
+        },
+        imam: {
+            type: String,
+            trim: true,
+        },
         charge_applicable: {
             type: Boolean,
             default: false,
@@ -110,6 +118,14 @@ const DeathRegistrySchema = new mongoose.Schema(
         certificate_generated: {
             type: Boolean,
             default: false,
+        },
+        certificate_language: {
+            type: String,
+            enum: ['en', 'ml'],
+            default: 'en',
+        },
+        pdf_url: {
+            type: String,
         },
         notes: {
             type: String,
