@@ -9,14 +9,16 @@ const resolveTenant = (slug) =>
   slug ? Tenant.findOne({ slug: slug.toLowerCase(), status: 'active' }) : null;
 
 // Uploads a Surah/Dua PDF to R2 under a tenant-scoped folder and returns the public URL.
+// No `downloadName` here (unlike certificates/receipts) — these PDFs are meant
+// to be read inline via the built-in viewer, not downloaded, so we don't want
+// Content-Disposition: attachment forcing a download instead of rendering.
 const uploadIslamicPdf = async (tenant_id, type, file) => {
   const tenant = await Tenant.findById(tenant_id).select('slug');
   const tenantFolder = tenant?.slug || tenant_id.toString();
   const safeName = file.originalname.replace(/[^a-zA-Z0-9._-]/g, '_');
   const key = `islamic-library/${tenantFolder}/${type}/${Date.now()}_${safeName}`;
   return uploadToR2(key, file.buffer, {
-    contentType: file.mimetype,
-    downloadName: file.originalname
+    contentType: file.mimetype
   });
 };
 
@@ -106,11 +108,12 @@ exports.updateSurah = async (req, res) => {
 // DELETE /api/islamic-library/surah/:id
 exports.deleteSurah = async (req, res) => {
   try {
-    const result = await Surah.updateOne(
+    const surah = await Surah.findOneAndUpdate(
       { _id: req.params.id, tenant_id: req.user.tenant_id, is_active: true },
       { $set: { is_active: false, updated_by: req.user.id } }
     );
-    if (result.matchedCount === 0) return res.status(404).json({ message: 'Surah not found' });
+    if (!surah) return res.status(404).json({ message: 'Surah not found' });
+    await deleteFromR2ByUrl(surah.pdf_file);
     res.json({ message: 'Surah deleted' });
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -203,11 +206,12 @@ exports.updateDua = async (req, res) => {
 // DELETE /api/islamic-library/dua/:id
 exports.deleteDua = async (req, res) => {
   try {
-    const result = await Dua.updateOne(
+    const dua = await Dua.findOneAndUpdate(
       { _id: req.params.id, tenant_id: req.user.tenant_id, is_active: true },
       { $set: { is_active: false, updated_by: req.user.id } }
     );
-    if (result.matchedCount === 0) return res.status(404).json({ message: 'Dua not found' });
+    if (!dua) return res.status(404).json({ message: 'Dua not found' });
+    await deleteFromR2ByUrl(dua.pdf_file);
     res.json({ message: 'Dua deleted' });
   } catch (err) {
     res.status(500).json({ message: err.message });

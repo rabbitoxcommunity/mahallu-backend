@@ -3,7 +3,7 @@ const Tenant = require('../models/Tenant');
 const fs = require('fs');
 const path = require('path');
 const { fillTemplate, getBrowser } = require('../utils/pdfTemplate');
-const { uploadToR2, streamFromR2ByUrl } = require('../utils/r2Client');
+const { uploadToR2, streamFromR2ByUrl, deleteFromR2ByUrl } = require('../utils/r2Client');
 
 const fmtDate = (d, locale = 'en-IN') =>
   d ? new Date(d).toLocaleDateString(locale, { day: '2-digit', month: '2-digit', year: 'numeric' }) : '-';
@@ -240,10 +240,11 @@ exports.updateMarriage = async (req, res) => {
       mobile, notes, certificate_language
     } = req.body;
 
-    const existing = await Marriage.findOne({ _id: req.params.id, tenant_id: req.user.tenant_id }, { certificate_language: 1 });
+    const existing = await Marriage.findOne({ _id: req.params.id, tenant_id: req.user.tenant_id }, { certificate_language: 1, pdf_url: 1 });
     const nextLanguage = certificate_language === 'ml' ? 'ml' : 'en';
     // Clear the cached PDF so it gets regenerated with the updated details/language on next download.
     const languageChanged = existing && existing.certificate_language !== nextLanguage;
+    if (languageChanged) await deleteFromR2ByUrl(existing.pdf_url);
 
     const marriage = await Marriage.findOneAndUpdate(
       { _id: req.params.id, tenant_id: req.user.tenant_id },

@@ -5,7 +5,7 @@ const Tenant = require('../models/Tenant');
 const fs = require('fs');
 const path = require('path');
 const { fillTemplate, getBrowser } = require('../utils/pdfTemplate');
-const { uploadToR2, streamFromR2ByUrl } = require('../utils/r2Client');
+const { uploadToR2, streamFromR2ByUrl, deleteFromR2ByUrl } = require('../utils/r2Client');
 
 // ─── ID Generators ──────────────────────────────────────────────────────────
 
@@ -319,7 +319,10 @@ exports.updateDeathRecord = async (req, res) => {
         const languageChanged = record.certificate_language !== nextLanguage;
         const certFieldChanged = certFields.some((f) => updates[f] !== undefined);
         if (languageChanged) updates.certificate_language = nextLanguage;
-        if (languageChanged || certFieldChanged) updates.pdf_url = null;
+        if (languageChanged || certFieldChanged) {
+            updates.pdf_url = null;
+            await deleteFromR2ByUrl(record.pdf_url);
+        }
 
         const updated = await DeathRegistry.findByIdAndUpdate(
             req.params.id,
@@ -359,6 +362,8 @@ exports.deleteDeathRecord = async (req, res) => {
                 death_registry_id: null,
             });
         }
+
+        await deleteFromR2ByUrl(record.pdf_url);
 
         return res.json({ message: 'Death record deleted successfully' });
     } catch (err) {
