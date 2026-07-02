@@ -13,10 +13,7 @@
       font-family: 'Noto Sans Malayalam', 'Noto Naskh Arabic', 'Noto Sans', sans-serif;
       font-size: 11px;
       color: #1a1a1a;
-      background: #e8e8e8;
-      display: flex;
-      justify-content: center;
-      padding: 20px;
+      background: #ffffff;
     }
 
     .page {
@@ -28,7 +25,22 @@
         radial-gradient(ellipse at 50% 100%, rgba(195,156,55,0.07) 0%, transparent 60%),
         #ffffff;
       position: relative;
-      box-shadow: 0 4px 32px rgba(0,0,0,0.18);
+      overflow: hidden;
+    }
+
+    /* Preview-only chrome: centers the page on a gray backdrop with a
+       drop shadow when opened directly in a browser. Excluded from
+       print/PDF output via the `print` media type Puppeteer uses. */
+    @media screen {
+      body {
+        background: #e8e8e8;
+        display: flex;
+        justify-content: center;
+        padding: 20px;
+      }
+      .page {
+        box-shadow: 0 4px 32px rgba(0,0,0,0.18);
+      }
     }
 
     /* ── DOUBLE BORDER ── */
@@ -290,7 +302,7 @@
 
       <!-- META -->
       <div class="meta-row">
-        <span><b>നം:</b> &nbsp;CERT/2025/0018</span>
+        <span><b>നം:</b> &nbsp;{{certificate_no}}</span>
         <span><b>തിയതി:</b> &nbsp;{{date}}</span>
       </div>
 
@@ -347,7 +359,7 @@
       </div>
 
       <!-- WITNESSES -->
-      <div class="witness-section">
+      <!-- <div class="witness-section">
         <div class="witness-header">✍️ സാക്ഷികൾ</div>
         <div class="witness-body">
           <div class="witness-item">
@@ -359,7 +371,7 @@
             {{witness2_name}}, {{witness2_address}}, {{witness2_city}} – {{witness2_pincode}}
           </div>
         </div>
-      </div>
+      </div> -->
 
       <!-- SIGNATURES -->
       <div class="signature-row">
