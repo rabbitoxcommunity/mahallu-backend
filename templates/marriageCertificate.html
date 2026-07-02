@@ -4,13 +4,11 @@
 <head>
   <meta charset="UTF-8" />
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Malayalam&family=Noto+Naskh+Arabic&family=Noto+Sans&display=swap');
-
     @page { size: A4; margin: 0; }
     * { box-sizing: border-box; margin: 0; padding: 0; }
 
     body {
-      font-family: 'Noto Sans Malayalam', 'Noto Naskh Arabic', 'Noto Sans', sans-serif;
+      font-family: 'Anek Malayalam', 'Noto Naskh Arabic', sans-serif;
       font-size: 11px;
       color: #1a1a1a;
       background: #ffffff;
@@ -73,20 +71,13 @@
 
     /* ── HEADER ── */
     .header-band {
-      background: linear-gradient(135deg, #155023 0%, #1e7a35 50%, #155023 100%);
+      background: linear-gradient(135deg, #155023, #1e7a35);
       border: 1px solid #b8972a;
       border-radius: 4px;
       padding: 7px 12px 6px;
       text-align: center;
       position: relative;
       overflow: hidden;
-    }
-    .header-band::before {
-      content: '';
-      position: absolute; inset: 0;
-      background-image:
-        repeating-linear-gradient(60deg,  transparent, transparent 12px, rgba(255,255,255,0.03) 12px, rgba(255,255,255,0.03) 13px),
-        repeating-linear-gradient(-60deg, transparent, transparent 12px, rgba(255,255,255,0.03) 12px, rgba(255,255,255,0.03) 13px);
     }
     .bismillah { font-size: 20px; color: #f5d97a; letter-spacing: 2px; line-height: 1.3; position: relative; }
     .org-name  { font-size: 15px; font-weight: bold; color: #ffffff; margin-top: 3px; position: relative; }
@@ -248,7 +239,7 @@
 
     /* ── FOOTER ── */
     .footer-band {
-      background: linear-gradient(135deg, #155023 0%, #1e7a35 50%, #155023 100%);
+      background: linear-gradient(135deg, #155023, #1e7a35);
       border: 0.8px solid #b8972a;
       border-radius: 3px;
       padding: 4px 10px;
@@ -277,7 +268,7 @@
     <div class="corner corner-tr"></div>
     <div class="corner corner-bl"></div>
     <div class="corner corner-br"></div>
-    <div class="watermark">☪ نكاح</div>
+    <div class="watermark">نكاح</div>
 
     <div class="inner-border">
 
@@ -318,7 +309,7 @@
       <div class="details-grid">
 
         <div class="details-box">
-          <div class="details-box-header">🤵 വരന്റെ വിശദാംശങ്ങൾ</div>
+          <div class="details-box-header">വരന്റെ വിശദാംശങ്ങൾ</div>
           <div class="details-box-body">
             <div class="field"><span class="label">പേര്:</span> {{groom_name}}</div>
             <div class="field"><span class="label">പിതാവ്:</span> {{groom_father}}</div>
@@ -330,7 +321,7 @@
         </div>
 
         <div class="details-box">
-          <div class="details-box-header">👰 വധുവിന്റെ വിശദാംശങ്ങൾ</div>
+          <div class="details-box-header">വധുവിന്റെ വിശദാംശങ്ങൾ</div>
           <div class="details-box-body">
             <div class="field"><span class="label">പേര്:</span> {{bride_name}}</div>
             <div class="field"><span class="label">പിതാവ്:</span> {{bride_father}}</div>
@@ -345,7 +336,7 @@
 
       <!-- NIKAH DETAILS -->
       <div class="nikah-section">
-        <div class="nikah-header">🕌 നിക്കാഹ് വിശദാംശങ്ങൾ</div>
+        <div class="nikah-header">നിക്കാഹ് വിശദാംശങ്ങൾ</div>
         <div class="nikah-body">
           <div class="nikah-item">
             <span class="label">നിക്കാഹ് തിയതി:</span>
@@ -357,21 +348,9 @@
           </div>
         </div>
       </div>
+      
 
-      <!-- WITNESSES -->
-      <!-- <div class="witness-section">
-        <div class="witness-header">✍️ സാക്ഷികൾ</div>
-        <div class="witness-body">
-          <div class="witness-item">
-            <span class="label">സാക്ഷി 1:</span>
-            {{witness1_name}}, {{witness1_address}}, {{witness1_city}} – {{witness1_pincode}}
-          </div>
-          <div class="witness-item">
-            <span class="label">സാക്ഷി 2:</span>
-            {{witness2_name}}, {{witness2_address}}, {{witness2_city}} – {{witness2_pincode}}
-          </div>
-        </div>
-      </div> -->
+
 
       <!-- SIGNATURES -->
       <div class="signature-row">

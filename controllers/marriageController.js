@@ -45,9 +45,24 @@ const esc = (str) =>
 const fillTemplate = (tpl, data) =>
   tpl.replace(/{{(\w+)}}/g, (_, key) => esc(data[key] ?? '-'));
 
+// Reuse one headless Chromium instance across requests instead of paying
+// ~1-2s browser-launch cost on every certificate generation.
+let browserPromise = null;
+const getBrowser = async () => {
+  if (!browserPromise) {
+    browserPromise = puppeteer.launch({ headless: 'new' });
+  }
+  const browser = await browserPromise;
+  if (!browser.isConnected()) {
+    browserPromise = puppeteer.launch({ headless: 'new' });
+    return browserPromise;
+  }
+  return browser;
+};
+
 // Generate PDF by rendering the HTML certificate template with Puppeteer
 const generateMarriagePDF = async (marriage) => {
-  let browser;
+  let page;
   try {
     const tenant = await Tenant.findById(marriage.tenant_id).select('name nameMalayalam address regNo');
     const mahalluName = tenant?.name || 'Mahallu';
@@ -91,8 +106,8 @@ const generateMarriagePDF = async (marriage) => {
       issue_date: iDate
     });
 
-    browser = await puppeteer.launch({ headless: 'new' });
-    const page = await browser.newPage();
+    const browser = await getBrowser();
+    page = await browser.newPage();
     await page.setContent(html, { waitUntil: 'networkidle0' });
 
     const pdfDir = path.join(__dirname, '../public/certificates');
@@ -104,7 +119,8 @@ const generateMarriagePDF = async (marriage) => {
       width: '210mm',
       height: '297mm',
       printBackground: true,
-      margin: { top: 0, bottom: 0, left: 0, right: 0 }
+      margin: { top: 0, bottom: 0, left: 0, right: 0 },
+      tagged: false // skip accessibility tag tree — not needed, saves ~10KB
     });
 
     return `/certificates/${marriage.certificate_no}.pdf`;
@@ -112,7 +128,7 @@ const generateMarriagePDF = async (marriage) => {
     console.error('Error generating PDF:', error);
     throw error;
   } finally {
-    if (browser) await browser.close();
+    if (page) await page.close();
   }
 };
 
