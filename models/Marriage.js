@@ -35,6 +35,7 @@ const marriageSchema = new mongoose.Schema({
   performer_designation: { type: String },
   mobile: { type: String },
   notes: { type: String },
+  certificate_language: { type: String, enum: ['en', 'ml'], default: 'en' },
   pdf_url: {
     type: String
   },

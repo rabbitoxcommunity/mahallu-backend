@@ -207,6 +207,7 @@
       display: inline-block;
       padding: 0 20px 5px;
       border-bottom: 2px solid #D4AF37;
+      letter-spacing: 1px;
     }
 
     /* ── META INFO ── */
@@ -379,7 +380,7 @@
             <!-- HEADER -->
             <div class="header">
               <div class="bismillah">﷽</div>
-              <div class="org-name">{{mahallu_name_malayalam}}</div>
+              <div class="org-name">{{mahallu_name}}</div>
               <div class="org-sub">{{mahallu_meta}}</div>
             </div>
 
@@ -388,74 +389,74 @@
             <!-- TITLE -->
             <div class="title-area">
               <div class="title-arabic">شهادة الزواج الإسلامية</div>
-              <div class="title-main">വിവാഹ സാക്ഷ്യപത്രം</div>
+              <div class="title-main">MARRIAGE CERTIFICATE</div>
             </div>
 
             <div class="divider"><span class="divider-icon">✦</span></div>
 
             <!-- META -->
             <div class="meta-bar">
-              <div>നം: <span>{{certificate_no}}</span></div>
-              <div>തിയതി: <span>{{date}}</span></div>
+              <div>Certificate No: <span>{{certificate_no}}</span></div>
+              <div>Date: <span>{{date}}</span></div>
             </div>
 
             <!-- CONTENT -->
             <div class="intro">
-              ഈ വിവാഹ സാക്ഷ്യപത്രം പ്രകാരം<br />
-              <strong>{{groom_name}}</strong> (വരൻ) &amp; <strong>{{bride_name}}</strong> (വധു)<br />
-              തമ്മിലുള്ള നിക്കാഹ് ഇസ്ലാമിക ശരീഅത്ത് പ്രകാരം നിയമാനുസൃതമായി<br />നടത്തപ്പെട്ടതായി മഹല്ല് കമ്മിറ്റി ഇതിനാൽ
-              സാക്ഷ്യപ്പെടുത്തുന്നു.
+              This is to certify that the Nikkah between<br />
+              <strong>{{groom_name}}</strong> (Groom) &amp; <strong>{{bride_name}}</strong> (Bride)<br />
+              was solemnized in accordance with Islamic Shariah and has been<br />duly registered by the Mahallu
+              Committee.
             </div>
 
             <!-- DETAILS GRID -->
             <div class="details-grid">
               <div class="detail-card">
-                <div class="card-head">വരന്റെ വിശദാംശങ്ങൾ</div>
+                <div class="card-head">GROOM'S DETAILS</div>
                 <div class="card-body">
                   <div class="info-row">
-                    <div class="info-lbl">പേര്:</div>
+                    <div class="info-lbl">Name:</div>
                     <div class="info-val">{{groom_name}}</div>
                   </div>
                   <div class="info-row">
-                    <div class="info-lbl">പിതാവ്:</div>
+                    <div class="info-lbl">Father:</div>
                     <div class="info-val">{{groom_father}}</div>
                   </div>
                   <div class="info-row">
-                    <div class="info-lbl">വീട്ടുപേര്:</div>
+                    <div class="info-lbl">House Name:</div>
                     <div class="info-val">{{groom_house_name}}</div>
                   </div>
                   <div class="info-row">
-                    <div class="info-lbl">വിലാസം:</div>
+                    <div class="info-lbl">Address:</div>
                     <div class="info-val">{{groom_address}}</div>
                   </div>
                   <div class="info-row">
-                    <div class="info-lbl">മഹല്ല്:</div>
+                    <div class="info-lbl">Mahallu:</div>
                     <div class="info-val">{{groom_mahallu}}</div>
                   </div>
                 </div>
               </div>
 
               <div class="detail-card">
-                <div class="card-head">വധുവിന്റെ വിശദാംശങ്ങൾ</div>
+                <div class="card-head">BRIDE'S DETAILS</div>
                 <div class="card-body">
                   <div class="info-row">
-                    <div class="info-lbl">പേര്:</div>
+                    <div class="info-lbl">Name:</div>
                     <div class="info-val">{{bride_name}}</div>
                   </div>
                   <div class="info-row">
-                    <div class="info-lbl">പിതാവ്:</div>
+                    <div class="info-lbl">Father:</div>
                     <div class="info-val">{{bride_father}}</div>
                   </div>
                   <div class="info-row">
-                    <div class="info-lbl">വീട്ടുപേര്:</div>
+                    <div class="info-lbl">House Name:</div>
                     <div class="info-val">{{bride_house_name}}</div>
                   </div>
                   <div class="info-row">
-                    <div class="info-lbl">വിലാസം:</div>
+                    <div class="info-lbl">Address:</div>
                     <div class="info-val">{{bride_address}}</div>
                   </div>
                   <div class="info-row">
-                    <div class="info-lbl">മഹല്ല്:</div>
+                    <div class="info-lbl">Mahallu:</div>
                     <div class="info-val">{{bride_mahallu}}</div>
                   </div>
                 </div>
@@ -465,15 +466,15 @@
             <!-- NIKAH DETAILS -->
             <div class="nikah-box">
               <div class="nikah-item">
-                <span class="lbl">നിക്കാഹ് തിയതി</span>
+                <span class="lbl">NIKKAH DATE</span>
                 <span class="val">{{date}}</span>
               </div>
               <div class="nikah-item">
-                <span class="lbl">നിക്കാഹ് നടത്തിയ ആൾ</span>
+                <span class="lbl">PERFORMED BY</span>
                 <span class="val">{{performer_name}}</span>
               </div>
               <div class="nikah-item">
-                <span class="lbl">നിക്കാഹ് സ്ഥലം</span>
+                <span class="lbl">NIKKAH PLACE</span>
                 <span class="val">{{place}}</span>
               </div>
             </div>
@@ -482,8 +483,8 @@
             <div class="signatures">
               <div class="sig-block">
                 <div class="sig-line"></div>
-                <div class="sig-role">പ്രസിഡന്റ് / സെക്രട്ടറി</div>
-                <div class="sig-name">{{mahallu_name_malayalam}}</div>
+                <div class="sig-role">President / Secretary</div>
+                <div class="sig-name">{{mahallu_name}}</div>
               </div>
             </div>
 

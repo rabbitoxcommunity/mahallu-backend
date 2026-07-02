@@ -74,7 +74,10 @@ const generateMarriagePDF = async (marriage) => {
     if (tenant?.regNo) metaParts.push(`Regd. No: ${tenant.regNo}`);
     const mahalluMeta = metaParts.length ? metaParts.join(' • ') : 'Marriage Registration Office';
 
-    const tplPath = path.join(__dirname, '../templates/marriageCertificate.html');
+    const tplFile = marriage.certificate_language === 'ml'
+      ? 'marriageCertificate.html'
+      : 'marriageCertificateEn.html';
+    const tplPath = path.join(__dirname, '../templates', tplFile);
     const tpl = fs.readFileSync(tplPath, 'utf8');
 
     const v = (x) => x || '-';
@@ -144,7 +147,7 @@ exports.createMarriage = async (req, res) => {
       bride_name, bride_father, bride_dob, bride_house_name, bride_mahallu, bride_address,
       date, nikkah_time, place, nikkah_mahallu,
       performer_name, performer_designation,
-      mobile, notes
+      mobile, notes, certificate_language
     } = req.body;
 
     const tenant_id = req.user.tenant_id;
@@ -163,6 +166,7 @@ exports.createMarriage = async (req, res) => {
       date, nikkah_time, place, nikkah_mahallu,
       performer_name, performer_designation,
       mobile, notes,
+      certificate_language: certificate_language === 'ml' ? 'ml' : 'en',
       created_by: req.user.id
     });
 
@@ -261,8 +265,13 @@ exports.updateMarriage = async (req, res) => {
       bride_name, bride_father, bride_dob, bride_house_name, bride_mahallu, bride_address,
       date, nikkah_time, place, nikkah_mahallu,
       performer_name, performer_designation,
-      mobile, notes
+      mobile, notes, certificate_language
     } = req.body;
+
+    const existing = await Marriage.findOne({ _id: req.params.id, tenant_id: req.user.tenant_id }, { certificate_language: 1 });
+    const nextLanguage = certificate_language === 'ml' ? 'ml' : 'en';
+    // Clear the cached PDF so it gets regenerated with the updated details/language on next download.
+    const languageChanged = existing && existing.certificate_language !== nextLanguage;
 
     const marriage = await Marriage.findOneAndUpdate(
       { _id: req.params.id, tenant_id: req.user.tenant_id },
@@ -271,7 +280,9 @@ exports.updateMarriage = async (req, res) => {
         bride_name, bride_father, bride_dob, bride_house_name, bride_mahallu, bride_address,
         date, nikkah_time, place, nikkah_mahallu,
         performer_name, performer_designation,
-        mobile, notes
+        mobile, notes,
+        certificate_language: nextLanguage,
+        ...(languageChanged ? { pdf_url: null } : {})
       },
       { new: true, runValidators: true }
     );
