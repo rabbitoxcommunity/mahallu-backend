@@ -2,7 +2,7 @@ const Expense = require('../models/Expense');
 const Counter = require('../models/Counter');
 const Tenant = require('../models/Tenant');
 const generateSequence = require('../utils/generateSequence');
-const { uploadToR2 } = require('../utils/r2Client');
+const { uploadToR2, streamFromR2ByUrl } = require('../utils/r2Client');
 const path = require('path');
 
 // Uploads a receipt file to R2 under a tenant-scoped folder and returns the public URL.
@@ -125,6 +125,35 @@ exports.getExpenseById = async (req, res, next) => {
     res.json(expense);
   } catch (err) {
     console.error('Error fetching expense:', err);
+    res.status(500).json({ message: err.message });
+  }
+};
+
+// @desc    Stream the receipt file inline (for viewing — no Content-Disposition:
+//          attachment, unlike the R2 URL used for downloads)
+// @route   GET /api/finance/expense/:id/receipt/view
+// @access  Private
+exports.viewReceipt = async (req, res) => {
+  try {
+    const expense = await Expense.findOne({
+      _id: req.params.id,
+      tenant_id: req.user.tenant_id
+    });
+
+    if (!expense || !expense.bill_file) {
+      return res.status(404).json({ message: 'Receipt not found' });
+    }
+
+    const obj = await streamFromR2ByUrl(expense.bill_file);
+    if (!obj) {
+      // Legacy/unmigrated path — nothing we can proxy, just redirect.
+      return res.redirect(expense.bill_file);
+    }
+    res.setHeader('Content-Type', obj.contentType || 'application/octet-stream');
+    if (obj.contentLength) res.setHeader('Content-Length', obj.contentLength);
+    obj.body.pipe(res);
+  } catch (err) {
+    console.error('Error streaming receipt:', err);
     res.status(500).json({ message: err.message });
   }
 };

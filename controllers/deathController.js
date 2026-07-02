@@ -5,7 +5,7 @@ const Tenant = require('../models/Tenant');
 const fs = require('fs');
 const path = require('path');
 const { fillTemplate, getBrowser } = require('../utils/pdfTemplate');
-const { uploadToR2 } = require('../utils/r2Client');
+const { uploadToR2, streamFromR2ByUrl } = require('../utils/r2Client');
 
 // ─── ID Generators ──────────────────────────────────────────────────────────
 
@@ -501,5 +501,35 @@ exports.generatePDF = async (req, res) => {
     } catch (err) {
         console.error('Error generating death certificate PDF:', err);
         return res.status(500).json({ message: 'Server error', error: err.message });
+    }
+};
+
+// @desc    Stream death certificate PDF inline (for print/preview — no
+//          Content-Disposition: attachment, unlike the R2 URL used for downloads)
+// @route   GET /api/community/death/:id/pdf/view
+// @access  Private
+exports.viewPDF = async (req, res) => {
+    try {
+        const record = await DeathRegistry.findOne({ _id: req.params.id, tenant_id: req.user.tenant_id });
+        if (!record) return res.status(404).json({ message: 'Record not found' });
+
+        let pdfUrl = record.pdf_url;
+        if (!pdfUrl) {
+            pdfUrl = await generateDeathCertPDF(record);
+            record.pdf_url = pdfUrl;
+            await record.save();
+        }
+
+        const obj = await streamFromR2ByUrl(pdfUrl);
+        if (!obj) {
+            // Legacy local path from before the R2 migration.
+            return res.redirect(pdfUrl);
+        }
+        res.setHeader('Content-Type', obj.contentType || 'application/pdf');
+        if (obj.contentLength) res.setHeader('Content-Length', obj.contentLength);
+        obj.body.pipe(res);
+    } catch (err) {
+        console.error('Error streaming death certificate PDF:', err);
+        res.status(500).json({ message: err.message });
     }
 };

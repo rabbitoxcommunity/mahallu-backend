@@ -3,7 +3,7 @@ const Tenant = require('../models/Tenant');
 const fs = require('fs');
 const path = require('path');
 const { fillTemplate, getBrowser } = require('../utils/pdfTemplate');
-const { uploadToR2 } = require('../utils/r2Client');
+const { uploadToR2, streamFromR2ByUrl } = require('../utils/r2Client');
 
 const fmtDate = (d, locale = 'en-IN') =>
   d ? new Date(d).toLocaleDateString(locale, { day: '2-digit', month: '2-digit', year: 'numeric' }) : '-';
@@ -344,6 +344,42 @@ exports.generatePDF = async (req, res) => {
   } catch (err) {
     console.error('Error generating PDF:', err);
     console.error('Error stack:', err.stack);
+    res.status(500).json({ message: err.message });
+  }
+};
+
+// @desc    Stream marriage certificate PDF inline (for print/preview — no
+//          Content-Disposition: attachment, unlike the R2 URL used for downloads)
+// @route   GET /api/admin/marriages/:id/pdf/view
+// @access  Private
+exports.viewPDF = async (req, res) => {
+  try {
+    const marriage = await Marriage.findOne({
+      _id: req.params.id,
+      tenant_id: req.user.tenant_id
+    });
+
+    if (!marriage) {
+      return res.status(404).json({ message: 'Marriage record not found' });
+    }
+
+    let pdfUrl = marriage.pdf_url;
+    if (!pdfUrl) {
+      pdfUrl = await generateMarriagePDF(marriage);
+      marriage.pdf_url = pdfUrl;
+      await marriage.save();
+    }
+
+    const obj = await streamFromR2ByUrl(pdfUrl);
+    if (!obj) {
+      // Legacy local path from before the R2 migration.
+      return res.redirect(pdfUrl);
+    }
+    res.setHeader('Content-Type', obj.contentType || 'application/pdf');
+    if (obj.contentLength) res.setHeader('Content-Length', obj.contentLength);
+    obj.body.pipe(res);
+  } catch (err) {
+    console.error('Error streaming PDF:', err);
     res.status(500).json({ message: err.message });
   }
 };

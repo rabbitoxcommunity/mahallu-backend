@@ -8,6 +8,7 @@ const {
     deleteDeathRecord,
     markCertificateGenerated,
     generatePDF,
+    viewPDF,
 } = require('../controllers/deathController');
 const { getDashboard } = require('../controllers/deathDashboardController');
 const { getReports } = require('../controllers/deathReportController');
@@ -23,5 +24,6 @@ router.put('/:id', updateDeathRecord);
 router.delete('/:id', deleteDeathRecord);
 router.put('/:id/certificate', markCertificateGenerated);
 router.get('/:id/pdf', generatePDF);
+router.get('/:id/pdf/view', viewPDF);
 
 module.exports = router;

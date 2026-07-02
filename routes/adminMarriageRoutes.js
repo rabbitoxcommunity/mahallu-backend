@@ -6,7 +6,8 @@ const {
   getAllMarriages,
   getMarriageById,
   updateMarriage,
-  generatePDF
+  generatePDF,
+  viewPDF
 } = require('../controllers/marriageController');
 
 // Admin routes (auth required)
@@ -17,5 +18,6 @@ router.get('/', getAllMarriages);
 router.get('/:id', getMarriageById);
 router.put('/:id', updateMarriage);
 router.get('/:id/pdf', generatePDF);
+router.get('/:id/pdf/view', viewPDF);
 
 module.exports = router;

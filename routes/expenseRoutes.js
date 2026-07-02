@@ -8,7 +8,8 @@ const {
   createExpense,
   updateExpense,
   deleteExpense,
-  getExpenseSummary
+  getExpenseSummary,
+  viewReceipt
 } = require('../controllers/expenseController');
 
 // Configure multer for file uploads
@@ -28,5 +29,7 @@ router.route('/:id')
   .get(getExpenseById)
   .put(upload.single('bill_file'), updateExpense)
   .delete(deleteExpense);
+
+router.get('/:id/receipt/view', viewReceipt);
 
 module.exports = router;
