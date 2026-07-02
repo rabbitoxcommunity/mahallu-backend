@@ -1,24 +1,11 @@
 const express = require('express');
 const router  = express.Router();
 const multer  = require('multer');
-const path    = require('path');
-const fs      = require('fs');
 const auth    = require('../middleware/auth');
 const ctrl    = require('../controllers/islamicLibraryController');
 
-const UPLOAD_DIR = path.join(__dirname, '../public/uploads/islamic');
-if (!fs.existsSync(UPLOAD_DIR)) fs.mkdirSync(UPLOAD_DIR, { recursive: true });
-
-const storage = multer.diskStorage({
-  destination: (_req, _file, cb) => cb(null, UPLOAD_DIR),
-  filename:    (_req, file, cb) => {
-    const safe = file.originalname.replace(/[^a-zA-Z0-9._-]/g, '_');
-    cb(null, `${Date.now()}_${safe}`);
-  },
-});
-
 const upload = multer({
-  storage,
+  storage: multer.memoryStorage(),
   limits: { fileSize: 20 * 1024 * 1024 }, // 20 MB
   fileFilter: (_req, file, cb) => {
     if (file.mimetype === 'application/pdf') cb(null, true);

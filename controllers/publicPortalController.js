@@ -8,11 +8,29 @@ const Marriage            = require('../models/Marriage');
 const DeathRegistry       = require('../models/DeathRegistry');
 const { generateMarriagePDF } = require('./marriageController');
 const { generateDeathCertPDF } = require('./deathController');
+const { streamFromR2ByUrl } = require('../utils/r2Client');
 
 // ── Resolve tenant_id from slug query param ──────────────────────────────────
 const resolveTenant = async (slug) => {
   if (!slug) return null;
   return Tenant.findOne({ slug: slug.toLowerCase(), status: 'active' });
+};
+
+// Proxies a certificate PDF through our own server instead of redirecting the
+// browser to R2 directly — avoids CORS entirely (R2.dev sends no CORS headers
+// by default) since frontend code that fetches this via XHR/axios only ever
+// talks to our own API origin, not R2's.
+const streamCertificate = async (res, pdfUrl, downloadName) => {
+  const obj = await streamFromR2ByUrl(pdfUrl);
+  if (!obj) {
+    // Legacy local path from before the R2 migration — redirect is fine here
+    // since it's same-origin (served by our own express.static('public')).
+    return res.redirect(pdfUrl);
+  }
+  res.setHeader('Content-Type', obj.contentType || 'application/pdf');
+  res.setHeader('Content-Disposition', `attachment; filename="${downloadName}"`);
+  if (obj.contentLength) res.setHeader('Content-Length', obj.contentLength);
+  obj.body.pipe(res);
 };
 
 // ── Upsert default settings for a tenant ──────────────────────────────────────
@@ -276,7 +294,7 @@ exports.getMarriageCertificate = async (req, res) => {
       await marriage.save();
     }
 
-    res.redirect(pdfUrl);
+    await streamCertificate(res, pdfUrl, `${marriage.certificate_no || marriage.marriage_id}.pdf`);
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
@@ -357,7 +375,7 @@ exports.getDeathCertificate = async (req, res) => {
       await record.save();
     }
 
-    res.redirect(pdfUrl);
+    await streamCertificate(res, pdfUrl, `${record.certificate_no || record.death_id}.pdf`);
   } catch (err) {
     res.status(500).json({ message: err.message });
   }

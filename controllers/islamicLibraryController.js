@@ -1,23 +1,23 @@
-const fs   = require('fs');
-const path = require('path');
 const mongoose = require('mongoose');
 const Surah    = require('../models/Surah');
 const Dua      = require('../models/Dua');
 const Tenant   = require('../models/Tenant');
-
-const UPLOAD_DIR = path.join(__dirname, '../public/uploads/islamic');
-
-// Ensure upload dir exists
-if (!fs.existsSync(UPLOAD_DIR)) fs.mkdirSync(UPLOAD_DIR, { recursive: true });
+const { uploadToR2, deleteFromR2ByUrl } = require('../utils/r2Client');
 
 // ── helpers ──────────────────────────────────────────────────────────────────
 const resolveTenant = (slug) =>
   slug ? Tenant.findOne({ slug: slug.toLowerCase(), status: 'active' }) : null;
 
-const deletePdfFile = (filename) => {
-  if (!filename) return;
-  const fp = path.join(UPLOAD_DIR, filename);
-  if (fs.existsSync(fp)) fs.unlinkSync(fp);
+// Uploads a Surah/Dua PDF to R2 under a tenant-scoped folder and returns the public URL.
+const uploadIslamicPdf = async (tenant_id, type, file) => {
+  const tenant = await Tenant.findById(tenant_id).select('slug');
+  const tenantFolder = tenant?.slug || tenant_id.toString();
+  const safeName = file.originalname.replace(/[^a-zA-Z0-9._-]/g, '_');
+  const key = `islamic-library/${tenantFolder}/${type}/${Date.now()}_${safeName}`;
+  return uploadToR2(key, file.buffer, {
+    contentType: file.mimetype,
+    downloadName: file.originalname
+  });
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -30,12 +30,14 @@ exports.createSurah = async (req, res) => {
     const { title, arabic_title, description, display_order, is_featured } = req.body;
     if (!title) return res.status(400).json({ message: 'Title is required' });
 
+    const pdf_file = req.file ? await uploadIslamicPdf(req.user.tenant_id, 'surah', req.file) : '';
+
     const surah = await Surah.create({
       tenant_id:     req.user.tenant_id,
       title,
       arabic_title:  arabic_title || '',
       description:   description  || '',
-      pdf_file:      req.file ? req.file.filename : '',
+      pdf_file,
       display_order: Number(display_order) || 0,
       is_featured:   is_featured === 'true' || is_featured === true,
       is_published:  false,
@@ -81,8 +83,9 @@ exports.updateSurah = async (req, res) => {
 
     // Replace PDF if new file uploaded
     if (req.file) {
-      deletePdfFile(surah.pdf_file);
-      surah.pdf_file = req.file.filename;
+      const oldUrl = surah.pdf_file;
+      surah.pdf_file = await uploadIslamicPdf(req.user.tenant_id, 'surah', req.file);
+      await deleteFromR2ByUrl(oldUrl);
     }
 
     if (title        !== undefined) surah.title         = title;
@@ -124,12 +127,14 @@ exports.createDua = async (req, res) => {
     const { title, category, description, display_order, is_featured } = req.body;
     if (!title) return res.status(400).json({ message: 'Title is required' });
 
+    const pdf_file = req.file ? await uploadIslamicPdf(req.user.tenant_id, 'dua', req.file) : '';
+
     const dua = await Dua.create({
       tenant_id:     req.user.tenant_id,
       title,
       category:      category    || 'General',
       description:   description || '',
-      pdf_file:      req.file ? req.file.filename : '',
+      pdf_file,
       display_order: Number(display_order) || 0,
       is_featured:   is_featured === 'true' || is_featured === true,
       is_published:  false,
@@ -175,8 +180,9 @@ exports.updateDua = async (req, res) => {
     if (!dua) return res.status(404).json({ message: 'Dua not found' });
 
     if (req.file) {
-      deletePdfFile(dua.pdf_file);
-      dua.pdf_file = req.file.filename;
+      const oldUrl = dua.pdf_file;
+      dua.pdf_file = await uploadIslamicPdf(req.user.tenant_id, 'dua', req.file);
+      await deleteFromR2ByUrl(oldUrl);
     }
 
     if (title        !== undefined) dua.title         = title;
