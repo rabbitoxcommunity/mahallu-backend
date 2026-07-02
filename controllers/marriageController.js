@@ -38,17 +38,15 @@ const generateCertificateNo = async (tenant_id) => {
 const generateMarriagePDF = async (marriage) => {
   let page;
   try {
-    const tenant = await Tenant.findById(marriage.tenant_id).select('name nameMalayalam address regNo slug');
+    const tenant = await Tenant.findById(marriage.tenant_id).select('name nameMalayalam address addressMalayalam regNo slug');
     const mahalluName = tenant?.name || 'Mahallu';
+    const isMalayalam = marriage.certificate_language === 'ml';
 
     const iDate = new Date().toLocaleDateString('en-IN', { day: '2-digit', month: '2-digit', year: 'numeric' });
 
-    const metaParts = [];
-    if (tenant?.address) metaParts.push(tenant.address);
-    if (tenant?.regNo) metaParts.push(`Regd. No: ${tenant.regNo}`);
-    const mahalluMeta = metaParts.length ? metaParts.join(' • ') : 'Marriage Registration Office';
+    const tenantAddress = isMalayalam ? (tenant?.addressMalayalam || tenant?.address) : tenant?.address;
 
-    const tplFile = marriage.certificate_language === 'ml'
+    const tplFile = isMalayalam
       ? 'marriageCertificate.html'
       : 'marriageCertificateEn.html';
     const tplPath = path.join(__dirname, '../templates', tplFile);
@@ -60,7 +58,8 @@ const generateMarriagePDF = async (marriage) => {
       certificate_no: v(marriage.certificate_no),
       mahallu_name: mahalluName,
       mahallu_name_malayalam: tenant?.nameMalayalam || '', // intentionally blank when unset
-      mahallu_meta: mahalluMeta,
+      mahallu_address: v(tenantAddress),
+      mahallu_reg_no: v(tenant?.regNo),
       date: fmtDate(marriage.date),
       nikkah_time: v(marriage.nikkah_time),
       place: v(marriage.place),

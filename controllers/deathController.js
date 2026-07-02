@@ -416,17 +416,15 @@ const dobAge = (dob, ref) => {
 const generateDeathCertPDF = async (record) => {
     let page;
     try {
-        const tenant = await Tenant.findById(record.tenant_id).select('name nameMalayalam address regNo slug');
+        const tenant = await Tenant.findById(record.tenant_id).select('name nameMalayalam address addressMalayalam regNo slug');
         const mahalluName = tenant?.name || 'Mahallu';
+        const isMalayalam = record.certificate_language === 'ml';
 
         const iDate = new Date().toLocaleDateString('en-IN', { day: '2-digit', month: '2-digit', year: 'numeric' });
 
-        const metaParts = [];
-        if (tenant?.address) metaParts.push(tenant.address);
-        if (tenant?.regNo) metaParts.push(`Regd. No: ${tenant.regNo}`);
-        const mahalluMeta = metaParts.length ? metaParts.join(' • ') : 'Death Registration Office';
+        const tenantAddress = isMalayalam ? (tenant?.addressMalayalam || tenant?.address) : tenant?.address;
 
-        const tplFile = record.certificate_language === 'ml'
+        const tplFile = isMalayalam
             ? 'deathCertificate.html'
             : 'deathCertificateEn.html';
         const tplPath = path.join(__dirname, '../templates', tplFile);
@@ -439,7 +437,8 @@ const generateDeathCertPDF = async (record) => {
             certificate_no: v(certNo),
             mahallu_name: mahalluName,
             mahallu_name_malayalam: tenant?.nameMalayalam || '', // intentionally blank when unset
-            mahallu_meta: mahalluMeta,
+            mahallu_address: v(tenantAddress),
+            mahallu_reg_no: v(tenant?.regNo),
             death_id: v(record.death_id),
             name: v(record.name),
             gender: v(record.gender),

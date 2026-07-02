@@ -8,9 +8,9 @@ exports.createTenant = async (req, res) => {
         console.log('=== Tenant Creation Request ===');
         console.log('Request body:', req.body);
         
-        const { name, nameMalayalam, address, regNo, slug, superAdminName, superAdminEmail, password } = req.body;
+        const { name, nameMalayalam, address, addressMalayalam, regNo, slug, superAdminName, superAdminEmail, password } = req.body;
 
-        console.log('Extracted data:', { name, nameMalayalam, address, regNo, slug, superAdminName, superAdminEmail, password: '***' });
+        console.log('Extracted data:', { name, nameMalayalam, address, addressMalayalam, regNo, slug, superAdminName, superAdminEmail, password: '***' });
 
         // Check if tenant slug already exists
         console.log('Checking for existing tenant with slug:', slug);
@@ -48,6 +48,7 @@ exports.createTenant = async (req, res) => {
             name,
             nameMalayalam,
             address,
+            addressMalayalam,
             regNo,
             slug,
             code
@@ -94,6 +95,7 @@ exports.createTenant = async (req, res) => {
                 name: tenant.name,
                 nameMalayalam: tenant.nameMalayalam,
                 address: tenant.address,
+                addressMalayalam: tenant.addressMalayalam,
                 regNo: tenant.regNo,
                 slug: tenant.slug,
                 code: tenant.code,
@@ -265,6 +267,7 @@ exports.getTenant = async (req, res) => {
                 name: tenant.name,
                 nameMalayalam: tenant.nameMalayalam,
                 address: tenant.address,
+                addressMalayalam: tenant.addressMalayalam,
                 regNo: tenant.regNo,
                 slug: tenant.slug,
                 code: tenant.code,
@@ -286,7 +289,7 @@ exports.getTenant = async (req, res) => {
 exports.updateTenant = async (req, res) => {
     try {
         const { id } = req.params;
-        const { name, nameMalayalam, address, regNo } = req.body;
+        const { name, nameMalayalam, address, addressMalayalam, regNo } = req.body;
 
         if (!name || !name.trim()) {
             return res.status(400).json({
@@ -296,7 +299,7 @@ exports.updateTenant = async (req, res) => {
 
         const tenant = await Tenant.findByIdAndUpdate(
             id,
-            { name, nameMalayalam, address, regNo },
+            { name, nameMalayalam, address, addressMalayalam, regNo },
             { new: true, runValidators: true }
         );
 
@@ -313,6 +316,7 @@ exports.updateTenant = async (req, res) => {
                 name: tenant.name,
                 nameMalayalam: tenant.nameMalayalam,
                 address: tenant.address,
+                addressMalayalam: tenant.addressMalayalam,
                 regNo: tenant.regNo,
                 slug: tenant.slug,
                 code: tenant.code,
