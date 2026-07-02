@@ -1,355 +1,390 @@
+
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-  <meta charset="UTF-8">
-  <title>Marriage Certificate</title>
+  <meta charset="UTF-8" />
   <style>
-    @page { size: A4 portrait; margin: 0; }
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    html, body {
-      width: 210mm; height: 297mm;
-      background: #fff;
-      font-family: 'Times New Roman', Times, Georgia, serif;
-    }
+    @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Malayalam&family=Noto+Naskh+Arabic&family=Noto+Sans&display=swap');
 
-    .page { width: 210mm; height: 297mm; position: relative; }
+    @page { size: A4; margin: 0; }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
 
-    .border-svg {
-      position: absolute; top: 0; left: 0;
-      width: 210mm; height: 297mm;
-      pointer-events: none;
-    }
-
-    /* ── Content ── */
-    .content {
-      position: absolute;
-      top: 16mm; left: 16mm; right: 16mm; bottom: 16mm;
-      display: flex; flex-direction: column;
-    }
-
-    .cert-no {
-      font-size: 8pt; color: #333; margin-bottom: 3mm;
-    }
-
-    /* Header */
-    .org-name {
-      font-size: 17pt; font-weight: bold; color: #000;
-      text-align: center; letter-spacing: 0.5px;
-    }
-    .dept-name {
-      font-size: 9pt; color: #333;
-      text-align: center; margin-top: 0.5mm;
-    }
-    .cert-title {
-      font-size: 14pt; font-weight: bold;
-      text-align: center; text-decoration: underline;
-      color: #000; margin-top: 1.5mm;
-    }
-    .cert-subtitle {
-      font-size: 7.5pt; font-style: italic;
-      text-align: center; color: #444;
-      margin-top: 2mm; line-height: 1.5;
-    }
-
-    /* Divider */
-    .divider {
-      border-top: 1.5pt solid #8B0000;
-      margin: 3mm 0 2.5mm;
-    }
-
-    /* Nikkah center block */
-    .nikkah-block {
+    body {
+      font-family: 'Noto Sans Malayalam', 'Noto Naskh Arabic', 'Noto Sans', sans-serif;
+      font-size: 11px;
+      color: #1a1a1a;
+      background: #e8e8e8;
       display: flex;
       justify-content: center;
-      gap: 0;
-      border: 0.8pt solid #555;
-      margin-bottom: 3mm;
+      padding: 20px;
     }
-    .nikkah-cell {
-      flex: 1;
-      padding: 2mm 3mm;
-      border-right: 0.8pt solid #555;
-      font-size: 8pt;
-    }
-    .nikkah-cell:last-child { border-right: none; }
-    .nikkah-label {
-      font-weight: bold; font-size: 7.5pt;
-      color: #444; display: block; margin-bottom: 0.5mm;
-    }
-    .nikkah-value { font-size: 8.5pt; }
 
-    /* Party headers row */
-    .party-header-row {
+    .page {
+      width: 210mm;
+      height: 297mm;
+      padding: 8mm;
+      background:
+        radial-gradient(ellipse at 50% 0%,   rgba(195,156,55,0.07) 0%, transparent 60%),
+        radial-gradient(ellipse at 50% 100%, rgba(195,156,55,0.07) 0%, transparent 60%),
+        #ffffff;
+      position: relative;
+      box-shadow: 0 4px 32px rgba(0,0,0,0.18);
+    }
+
+    /* ── DOUBLE BORDER ── */
+    .outer-border {
+      width: 100%; height: 100%;
+      border: 3px solid #b8972a;
+      padding: 4px;
+      position: relative;
+    }
+
+    .inner-border {
+      width: 100%; height: 100%;
+      border: 1.2px solid #d4af37;
+      padding: 7mm 8mm 6mm 8mm;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      gap: 0;
+      background:
+        linear-gradient(180deg, rgba(21,80,35,0.03) 0%, transparent 18%),
+        linear-gradient(0deg,   rgba(21,80,35,0.03) 0%, transparent 18%);
+    }
+
+    /* ── CORNERS ── */
+    .corner { position: absolute; width: 22px; height: 22px; border-color: #b8972a; border-style: solid; }
+    .corner-tl { top: -3px; left: -3px;   border-width: 3px 0 0 3px; }
+    .corner-tr { top: -3px; right: -3px;  border-width: 3px 3px 0 0; }
+    .corner-bl { bottom: -3px; left: -3px;  border-width: 0 0 3px 3px; }
+    .corner-br { bottom: -3px; right: -3px; border-width: 0 3px 3px 0; }
+
+    /* ── HEADER ── */
+    .header-band {
+      background: linear-gradient(135deg, #155023 0%, #1e7a35 50%, #155023 100%);
+      border: 1px solid #b8972a;
+      border-radius: 4px;
+      padding: 7px 12px 6px;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+    .header-band::before {
+      content: '';
+      position: absolute; inset: 0;
+      background-image:
+        repeating-linear-gradient(60deg,  transparent, transparent 12px, rgba(255,255,255,0.03) 12px, rgba(255,255,255,0.03) 13px),
+        repeating-linear-gradient(-60deg, transparent, transparent 12px, rgba(255,255,255,0.03) 12px, rgba(255,255,255,0.03) 13px);
+    }
+    .bismillah { font-size: 20px; color: #f5d97a; letter-spacing: 2px; line-height: 1.3; position: relative; }
+    .org-name  { font-size: 15px; font-weight: bold; color: #ffffff; margin-top: 3px; position: relative; }
+    .org-sub   { font-size: 9px; color: #d4c080; line-height: 1.5; position: relative; }
+
+    /* ── GOLD DIVIDER ── */
+    .gold-divider { display: flex; align-items: center; gap: 6px; }
+    .gold-divider .line    { flex: 1; height: 1px; background: linear-gradient(90deg, transparent, #b8972a, transparent); }
+    .gold-divider .diamond { width: 6px; height: 6px; background: #b8972a; transform: rotate(45deg); flex-shrink: 0; }
+
+    /* ── TITLE ── */
+    .title-wrap {
+      text-align: center;
+      padding: 2px 0;
+    }
+    .title-arabic {
+      font-size: 13px;
+      color: #155023;
+      letter-spacing: 1px;
+      margin-bottom: 3px;
+    }
+    .title-main {
+      font-size: 16px;
+      font-weight: bold;
+      color: #155023;
+      border-bottom: 1.5px solid #b8972a;
+      display: inline-block;
+      padding-bottom: 2px;
+      letter-spacing: 0.5px;
+    }
+
+    /* ── META ROW ── */
+    .meta-row {
       display: flex;
       justify-content: space-between;
-      margin-bottom: 1.5mm;
-    }
-    .party-lbl {
-      font-size: 9.5pt; font-weight: bold;
-      text-decoration: underline; color: #000;
-    }
-
-    /* Details table heading */
-    .table-heading {
-      font-size: 8.5pt; font-style: italic; font-weight: bold;
-      text-align: center; margin-bottom: 1.5mm; color: #111;
+      font-size: 9.5px;
+      background: rgba(21,80,35,0.05);
+      border: 0.8px solid rgba(184,151,42,0.3);
+      padding: 3px 8px;
+      border-radius: 3px;
     }
 
-    /* Details table */
-    .dtable {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: 8.5pt;
-      margin-bottom: 3mm;
+    /* ── CONTENT PARA ── */
+    .content-para {
+      text-align: center;
+      font-size: 10.5px;
+      line-height: 1.8;
+      background: linear-gradient(135deg, rgba(21,80,35,0.04), rgba(184,151,42,0.05));
+      border: 0.8px solid rgba(184,151,42,0.35);
+      border-radius: 4px;
+      padding: 6px 16px;
+      color: #111;
     }
-    .dtable td {
-      border: 0.7pt solid #666;
-      padding: 1.8mm 2.5mm;
-      vertical-align: top;
-      line-height: 1.4;
-    }
-    .dtable .lbl {
+    .content-para strong { color: #155023; font-size: 11.5px; }
+
+    /* ── DETAILS GRID ── */
+    .details-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; }
+    .details-box  { border: 1px solid #c9a84c; border-radius: 4px; overflow: hidden; }
+    .details-box-header {
+      background: linear-gradient(135deg, #155023, #1e7a35);
+      color: #f5d97a;
+      font-size: 10px;
       font-weight: bold;
-      background: #f7f7f7;
-      width: 30%;
-      color: #222;
+      text-align: center;
+      padding: 4px 6px;
+      letter-spacing: 0.3px;
+      border-bottom: 1px solid #b8972a;
     }
-    .dtable .col-h { width: 35%; }
-    .dtable .col-w { width: 35%; }
-
-    /* Performer row */
-    .extra-row {
-      display: flex; gap: 8mm;
-      font-size: 8.5pt; margin-bottom: 2.5mm;
-    }
-    .extra-field strong { margin-right: 1mm; }
-
-    /* Bottom info */
-    .bottom-row {
-      display: flex; justify-content: space-between;
-      font-size: 8pt; margin-bottom: 2mm;
-      border-top: 0.8pt solid #ccc;
-      padding-top: 2mm;
-    }
-    .bottom-field { display: flex; gap: 1mm; }
-
-    /* Footer */
-    .footer {
-      margin-top: auto;
+    .details-box-body {
+      padding: 5px 8px;
+      background: rgba(250,247,238,0.6);
       display: flex;
-      justify-content: flex-end;
-      padding-top: 4mm;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .field {
+      font-size: 9.5px;
+      display: flex;
+      gap: 4px;
+      line-height: 1.5;
+      border-bottom: 0.5px solid rgba(184,151,42,0.18);
+      padding-bottom: 2px;
+    }
+    .field:last-child { border-bottom: none; padding-bottom: 0; }
+    .label { font-weight: bold; color: #155023; min-width: 90px; flex-shrink: 0; }
+
+    /* ── NIKAH SECTION ── */
+    .nikah-section { border: 1px solid #c9a84c; border-radius: 4px; overflow: hidden; }
+    .nikah-header  {
+      background: linear-gradient(135deg, #155023, #1e7a35);
+      color: #f5d97a;
+      font-size: 10px;
+      font-weight: bold;
+      padding: 4px 10px;
+      border-bottom: 1px solid #b8972a;
+      letter-spacing: 0.3px;
+    }
+    .nikah-body {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      padding: 6px 10px;
+      background: rgba(250,247,238,0.6);
+    }
+    .nikah-item { font-size: 9.5px; }
+    .nikah-item .label { display: block; margin-bottom: 1px; }
+
+    /* ── WITNESSES ── */
+    .witness-section { border: 1px solid #c9a84c; border-radius: 4px; overflow: hidden; }
+    .witness-header  {
+      background: linear-gradient(135deg, #155023, #1e7a35);
+      color: #f5d97a;
+      font-size: 10px;
+      font-weight: bold;
+      padding: 4px 10px;
+      border-bottom: 1px solid #b8972a;
+      letter-spacing: 0.3px;
+    }
+    .witness-body {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      padding: 6px 10px;
+      background: rgba(250,247,238,0.6);
+    }
+    .witness-item { font-size: 9.5px; }
+    .witness-item .label { display: block; margin-bottom: 1px; color: #155023; font-weight: bold; }
+
+    /* ── SIGNATURE ROW ── */
+    .signature-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      padding: 0 10px;
+    }
+    .seal-circle {
+      width: 54px; height: 54px;
+      border-radius: 50%;
+      border: 1.5px dashed #b8972a;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 7.5px;
+      color: #b8972a;
+      text-align: center;
+      line-height: 1.4;
+      background: rgba(184,151,42,0.04);
     }
     .sig-block { text-align: center; }
-    .sig-space { height: 14mm; }
-    .sig-line {
-      width: 50mm; border-top: 1pt solid #000;
-      padding-top: 1.5mm; font-size: 8pt; font-weight: bold;
-      text-align: center;
+    .sig-line  {
+      width: 120px;
+      border-top: 1px solid #155023;
+      padding-top: 4px;
+      font-size: 9px;
+      color: #155023;
+      font-weight: bold;
     }
-    .sig-org { font-size: 7.5pt; margin-top: 1mm; text-align: center; }
+    .sig-sub { font-size: 8px; color: #666; margin-top: 1px; }
 
-    /* Disclaimer */
-    .disclaimer {
-      margin-top: 3mm;
-      font-size: 6.5pt; color: #666;
-      text-align: center; font-style: italic; line-height: 1.5;
-      border-top: 0.5pt solid #ddd; padding-top: 2mm;
+    /* ── FOOTER ── */
+    .footer-band {
+      background: linear-gradient(135deg, #155023 0%, #1e7a35 50%, #155023 100%);
+      border: 0.8px solid #b8972a;
+      border-radius: 3px;
+      padding: 4px 10px;
+      text-align: center;
+      font-size: 8px;
+      color: #d4c080;
+    }
+
+    /* ── WATERMARK ── */
+    .watermark {
+      position: absolute;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%) rotate(-30deg);
+      font-size: 72px;
+      color: rgba(21,80,35,0.04);
+      pointer-events: none;
+      white-space: nowrap;
+      z-index: 0;
     }
   </style>
 </head>
 <body>
 <div class="page">
+  <div class="outer-border">
+    <div class="corner corner-tl"></div>
+    <div class="corner corner-tr"></div>
+    <div class="corner corner-bl"></div>
+    <div class="corner corner-br"></div>
+    <div class="watermark">☪ نكاح</div>
 
-  <!-- ═══ BORDER SVG — Double line + corner rosettes (A4 portrait 794×1123) ═══ -->
-  <svg class="border-svg" viewBox="0 0 794 1123" xmlns="http://www.w3.org/2000/svg">
-    <defs>
-      <!-- ── Corner rosette (centered at origin, translated to each corner) ── -->
-      <g id="ros">
-        <!-- White disc to blank the border lines underneath -->
-        <circle r="24" fill="white"/>
-        <!-- Outer ring -->
-        <circle r="22" fill="none" stroke="#8B0000" stroke-width="1.4"/>
-        <!-- Gold ring -->
-        <circle r="15" fill="none" stroke="#C49A22" stroke-width="1"/>
-        <!-- 4 cardinal petals (maroon) -->
-        <path d="M0,-4.5 C-9,-12 -9,-21 0,-16 C9,-21 9,-12 0,-4.5Z" fill="#8B0000" opacity="0.9"/>
-        <path d="M0,4.5  C-9,12  -9,21  0,16  C9,21  9,12  0,4.5Z"  fill="#8B0000" opacity="0.9"/>
-        <path d="M-4.5,0 C-12,-9 -21,-9 -16,0 C-21,9 -12,9 -4.5,0Z" fill="#8B0000" opacity="0.9"/>
-        <path d="M4.5,0  C12,-9  21,-9  16,0  C21,9  12,9  4.5,0Z"  fill="#8B0000" opacity="0.9"/>
-        <!-- 4 diagonal petals (gold) -->
-        <path d="M3,-3 C5,-14 13,-18 12,-12 C18,-13 14,-5 3,-3Z"    fill="#C49A22" opacity="0.85"/>
-        <path d="M3,3  C14,5  18,13  12,12  C13,18  5,14  3,3Z"    fill="#C49A22" opacity="0.85"/>
-        <path d="M-3,3 C-5,14 -13,18 -12,12 C-18,13 -14,5 -3,3Z"   fill="#C49A22" opacity="0.85"/>
-        <path d="M-3,-3 C-14,-5 -18,-13 -12,-12 C-13,-18 -5,-14 -3,-3Z" fill="#C49A22" opacity="0.85"/>
-        <!-- Center -->
-        <circle r="7"   fill="#8B0000"/>
-        <circle r="4"   fill="#C49A22"/>
-        <circle r="1.8" fill="white"/>
-      </g>
+    <div class="inner-border">
 
-      <!-- ── Side-midpoint ornament (small diamond star) ── -->
-      <g id="mid">
-        <circle r="13" fill="white"/>
-        <circle r="12" fill="none" stroke="#8B0000" stroke-width="1"/>
-        <polygon points="0,-9 9,0 0,9 -9,0" fill="#8B0000" opacity="0.9"/>
-        <polygon points="0,-5 5,0 0,5 -5,0" fill="#C49A22"/>
-        <circle r="2" fill="white"/>
-      </g>
-    </defs>
-
-    <!-- Page background -->
-    <rect width="794" height="1123" fill="white"/>
-
-    <!-- ── Frame 1: thin outer maroon line ── -->
-    <rect x="11" y="11" width="772" height="1101" fill="none" stroke="#8B0000" stroke-width="1.5"/>
-
-    <!-- ── Frame 2: gold accent ── -->
-    <rect x="19" y="19" width="756" height="1085" fill="none" stroke="#C49A22" stroke-width="0.9"/>
-
-    <!-- ── Frame 3: thick inner maroon line ── -->
-    <rect x="27" y="27" width="740" height="1069" fill="none" stroke="#8B0000" stroke-width="2.8"/>
-
-    <!-- ── Frame 4: thin gold accent just inside frame 3 ── -->
-    <rect x="32" y="32" width="730" height="1059" fill="none" stroke="#C49A22" stroke-width="0.6"/>
-
-    <!-- ── Corner rosettes (centered at frame-3 corners) ── -->
-    <use href="#ros" transform="translate(27,27)"/>
-    <use href="#ros" transform="translate(767,27)"/>
-    <use href="#ros" transform="translate(27,1096)"/>
-    <use href="#ros" transform="translate(767,1096)"/>
-
-    <!-- ── Side midpoint ornaments (on gold line, midpoints) ── -->
-    <use href="#mid" transform="translate(397,19)"/>
-    <use href="#mid" transform="translate(397,1104)"/>
-    <use href="#mid" transform="translate(19,561)"/>
-    <use href="#mid" transform="translate(775,561)"/>
-
-    <!-- Content background -->
-    <rect x="33" y="33" width="728" height="1057" fill="white"/>
-  </svg>
-
-  <!-- ═══ CONTENT ═══ -->
-  <div class="content">
-
-    <!-- Certificate Number -->
-    <div class="cert-no">No. {{certificate_no}}</div>
-
-    <!-- Header -->
-    <div class="org-name">{{mahallu_name}}</div>
-    <div class="dept-name">Marriage Registration Office</div>
-    <div class="cert-title">Certificate of Marriage</div>
-    <div class="cert-subtitle">
-      This is to certify that the following Nikkah has been solemnized and the information has been recorded<br>
-      in the Marriage Register maintained in the office of {{mahallu_name}}.
-    </div>
-
-    <div class="divider"></div>
-
-    <!-- Party header labels -->
-    <div class="party-header-row">
-      <div class="party-lbl">Husband Details</div>
-      <div class="party-lbl">Wife Details</div>
-    </div>
-
-    <!-- Nikkah info block -->
-    <div class="nikkah-block">
-      <div class="nikkah-cell">
-        <span class="nikkah-label">Date of Marriage</span>
-        <span class="nikkah-value">{{date}}</span>
+      <!-- HEADER -->
+      <div class="header-band">
+        <div class="bismillah">﷽</div>
+        <div class="org-name">{{mahallu_name_malayalam}}</div>
+        <div class="org-sub">{{mahallu_meta}}</div>
       </div>
-      <div class="nikkah-cell">
-        <span class="nikkah-label">Time of Nikkah</span>
-        <span class="nikkah-value">{{nikkah_time}}</span>
+
+      <!-- DIVIDER -->
+      <div class="gold-divider"><div class="line"></div><div class="diamond"></div><div class="line"></div></div>
+
+      <!-- TITLE -->
+      <div class="title-wrap">
+        <div class="title-arabic">شهادة الزواج الإسلامية</div>
+        <div class="title-main">വിവാഹ സാക്ഷ്യപത്രം</div>
       </div>
-      <div class="nikkah-cell">
-        <span class="nikkah-label">Place of Marriage</span>
-        <span class="nikkah-value">{{place}}</span>
+
+      <!-- DIVIDER -->
+      <div class="gold-divider"><div class="line"></div><div class="diamond"></div><div class="line"></div></div>
+
+      <!-- META -->
+      <div class="meta-row">
+        <span><b>നം:</b> &nbsp;CERT/2025/0018</span>
+        <span><b>തിയതി:</b> &nbsp;{{date}}</span>
       </div>
-      <div class="nikkah-cell">
-        <span class="nikkah-label">Nikkah Mahallu</span>
-        <span class="nikkah-value">{{nikkah_mahallu}}</span>
+
+      <!-- CONTENT -->
+      <div class="content-para">
+        ഈ വിവാഹ സാക്ഷ്യപത്രം പ്രകാരം
+        <strong>{{groom_name}}</strong> (വരൻ) &amp; <strong>{{bride_name}}</strong> (വധു)
+        തമ്മിലുള്ള നിക്കാഹ് ഇസ്ലാമിക ശരീഅത്ത് പ്രകാരം നിയമാനുസൃതമായി
+        നടത്തപ്പെട്ടതായി മഹല്ല് കമ്മിറ്റി ഇതിനാൽ സാക്ഷ്യപ്പെടുത്തുന്നു.
       </div>
-    </div>
 
-    <!-- Details table heading -->
-    <div class="table-heading">Details of Parties to the Marriage (as on the date of marriage)</div>
+      <!-- DETAILS GRID -->
+      <div class="details-grid">
 
-    <!-- Details table -->
-    <table class="dtable">
-      <colgroup>
-        <col class="lbl">
-        <col class="col-h">
-        <col class="col-w">
-      </colgroup>
-      <thead>
-        <tr>
-          <td class="lbl"></td>
-          <td style="font-weight:bold; text-align:center;">Husband</td>
-          <td style="font-weight:bold; text-align:center;">Wife</td>
-        </tr>
-      </thead>
-      <tbody>
-        <tr>
-          <td class="lbl">Name</td>
-          <td class="col-h">{{groom_name}}</td>
-          <td class="col-w">{{bride_name}}</td>
-        </tr>
-        <tr>
-          <td class="lbl">Age and Date of Birth</td>
-          <td>{{groom_dob_age}}</td>
-          <td>{{bride_dob_age}}</td>
-        </tr>
-        <tr>
-          <td class="lbl">Permanent Address</td>
-          <td>{{groom_address}}</td>
-          <td>{{bride_address}}</td>
-        </tr>
-        <tr>
-          <td class="lbl">Father Name</td>
-          <td>{{groom_father}}</td>
-          <td>{{bride_father}}</td>
-        </tr>
-        <tr>
-          <td class="lbl">House Name</td>
-          <td>{{groom_house_name}}</td>
-          <td>{{bride_house_name}}</td>
-        </tr>
-        <tr>
-          <td class="lbl">Mahallu</td>
-          <td>{{groom_mahallu}}</td>
-          <td>{{bride_mahallu}}</td>
-        </tr>
-      </tbody>
-    </table>
+        <div class="details-box">
+          <div class="details-box-header">🤵 വരന്റെ വിശദാംശങ്ങൾ</div>
+          <div class="details-box-body">
+            <div class="field"><span class="label">പേര്:</span> {{groom_name}}</div>
+            <div class="field"><span class="label">പിതാവ്:</span> {{groom_father}}</div>
+            <div class="field"><span class="label">മാതാവ്:</span> {{groom_mother}}</div>
+            <div class="field"><span class="label">വീട്ടുപേര്:</span> {{groom_address}}</div>
+            <div class="field"><span class="label">വിലാസം:</span> {{groom_city}} – {{groom_pincode}}</div>
+            <div class="field"><span class="label">മഹല്ല്:</span> {{groom_mahallu}}</div>
+          </div>
+        </div>
 
-    <!-- Performer -->
-    <div class="extra-row">
-      <div class="extra-field"><strong>Performer of Nikkah</strong> : {{performer_name}}</div>
-      <div class="extra-field"><strong>Designation</strong> : {{performer_designation}}</div>
-    </div>
+        <div class="details-box">
+          <div class="details-box-header">👰 വധുവിന്റെ വിശദാംശങ്ങൾ</div>
+          <div class="details-box-body">
+            <div class="field"><span class="label">പേര്:</span> {{bride_name}}</div>
+            <div class="field"><span class="label">പിതാവ്:</span> {{bride_father}}</div>
+            <div class="field"><span class="label">മാതാവ്:</span> {{bride_mother}}</div>
+            <div class="field"><span class="label">വീട്ടുപേര്:</span> {{bride_address}}</div>
+            <div class="field"><span class="label">വിലാസം:</span> {{bride_city}} – {{bride_pincode}}</div>
+            <div class="field"><span class="label">മഹല്ല്:</span> {{bride_mahallu}}</div>
+          </div>
+        </div>
 
-    <!-- Bottom info -->
-    <div class="bottom-row">
-      <div class="bottom-field"><strong>Marriage ID</strong> &nbsp;:&nbsp; {{marriage_id}}</div>
-      <div class="bottom-field"><strong>Date of Issue</strong> &nbsp;:&nbsp; {{issue_date}}</div>
-    </div>
-
-    <!-- Footer signature -->
-    <div class="footer">
-      <div class="sig-block">
-        <div class="sig-space"></div>
-        <div class="sig-line">Authorized Signatory</div>
-        <div class="sig-org">{{mahallu_name}}</div>
       </div>
-    </div>
 
-    <!-- Disclaimer -->
-    <div class="disclaimer">
-      This is an official certificate issued by {{mahallu_name}}. This certificate is valid for all official purposes.<br>
-      Authenticity can be verified at the office of {{mahallu_name}}.
-    </div>
+      <!-- NIKAH DETAILS -->
+      <div class="nikah-section">
+        <div class="nikah-header">🕌 നിക്കാഹ് വിശദാംശങ്ങൾ</div>
+        <div class="nikah-body">
+          <div class="nikah-item">
+            <span class="label">നിക്കാഹ് തിയതി:</span>
+            {{nikah_date}}
+          </div>
+          <div class="nikah-item">
+            <span class="label">നിക്കാഹ് സ്ഥലം:</span>
+            {{nikah_location}}
+          </div>
+        </div>
+      </div>
 
+      <!-- WITNESSES -->
+      <div class="witness-section">
+        <div class="witness-header">✍️ സാക്ഷികൾ</div>
+        <div class="witness-body">
+          <div class="witness-item">
+            <span class="label">സാക്ഷി 1:</span>
+            {{witness1_name}}, {{witness1_address}}, {{witness1_city}} – {{witness1_pincode}}
+          </div>
+          <div class="witness-item">
+            <span class="label">സാക്ഷി 2:</span>
+            {{witness2_name}}, {{witness2_address}}, {{witness2_city}} – {{witness2_pincode}}
+          </div>
+        </div>
+      </div>
+
+      <!-- SIGNATURES -->
+      <div class="signature-row">
+        <div class="seal-circle">ഔദ്യോഗിക<br/>മുദ്ര</div>
+        <div class="sig-block">
+          <div class="sig-line">നിക്കാഹ് നടത്തിയ ആൾ</div>
+          <div class="sig-sub">{{performer_name}}</div>
+        </div>
+        <div class="sig-block">
+          <div class="sig-line">പ്രസിഡന്റ് / സെക്രട്ടറി</div>
+          <div class="sig-sub">{{mahallu_name_malayalam}}</div>
+        </div>
+        <div class="seal-circle">Official<br/>Seal</div>
+      </div>
+
+      <!-- DIVIDER -->
+      <div class="gold-divider"><div class="line"></div><div class="diamond"></div><div class="line"></div></div>
+
+      <!-- FOOTER -->
+      <div class="footer-band">
+        ഈ സർട്ടിഫിക്കറ്റ് മഹല്ല് ആപ്പ് (mahalluconnect.com) വഴി ഔദ്യോഗികമായി സൃഷ്ടിച്ചതാണ്.
+        ഇത് മഹല്ല് കമ്മിറ്റിയുടെ അംഗീകൃത വിവാഹ രേഖയാണ്.
+      </div>
+
+    </div>
   </div>
 </div>
 </body>

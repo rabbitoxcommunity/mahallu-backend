@@ -10,3 +10,6 @@ yarn-error.log*
 # seedUsers.js
 # seedUsers.js.map
 public/certificates
+.claude
+.claude/settings.json
+.claude

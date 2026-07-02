@@ -8,9 +8,9 @@ exports.createTenant = async (req, res) => {
         console.log('=== Tenant Creation Request ===');
         console.log('Request body:', req.body);
         
-        const { name, slug, superAdminName, superAdminEmail, password } = req.body;
-        
-        console.log('Extracted data:', { name, slug, superAdminName, superAdminEmail, password: '***' });
+        const { name, nameMalayalam, address, regNo, slug, superAdminName, superAdminEmail, password } = req.body;
+
+        console.log('Extracted data:', { name, nameMalayalam, address, regNo, slug, superAdminName, superAdminEmail, password: '***' });
 
         // Check if tenant slug already exists
         console.log('Checking for existing tenant with slug:', slug);
@@ -46,6 +46,9 @@ exports.createTenant = async (req, res) => {
         
         const tenant = new Tenant({
             name,
+            nameMalayalam,
+            address,
+            regNo,
             slug,
             code
         });
@@ -89,6 +92,9 @@ exports.createTenant = async (req, res) => {
             tenant: {
                 id: tenant._id,
                 name: tenant.name,
+                nameMalayalam: tenant.nameMalayalam,
+                address: tenant.address,
+                regNo: tenant.regNo,
                 slug: tenant.slug,
                 code: tenant.code,
                 status: tenant.status,
@@ -257,6 +263,9 @@ exports.getTenant = async (req, res) => {
             tenant: {
                 id: tenant._id,
                 name: tenant.name,
+                nameMalayalam: tenant.nameMalayalam,
+                address: tenant.address,
+                regNo: tenant.regNo,
                 slug: tenant.slug,
                 code: tenant.code,
                 status: tenant.status,
@@ -267,6 +276,52 @@ exports.getTenant = async (req, res) => {
         });
     } catch (error) {
         console.error("Get tenant error:", error);
+        res.status(500).json({
+            message: "Internal server error"
+        });
+    }
+};
+
+// Update tenant details (name, Malayalam name, address, registration number)
+exports.updateTenant = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { name, nameMalayalam, address, regNo } = req.body;
+
+        if (!name || !name.trim()) {
+            return res.status(400).json({
+                message: "Tenant name is required"
+            });
+        }
+
+        const tenant = await Tenant.findByIdAndUpdate(
+            id,
+            { name, nameMalayalam, address, regNo },
+            { new: true, runValidators: true }
+        );
+
+        if (!tenant) {
+            return res.status(404).json({
+                message: "Tenant not found"
+            });
+        }
+
+        res.json({
+            message: "Tenant updated successfully",
+            tenant: {
+                id: tenant._id,
+                name: tenant.name,
+                nameMalayalam: tenant.nameMalayalam,
+                address: tenant.address,
+                regNo: tenant.regNo,
+                slug: tenant.slug,
+                code: tenant.code,
+                status: tenant.status,
+                updatedAt: tenant.updatedAt
+            }
+        });
+    } catch (error) {
+        console.error("Update tenant error:", error);
         res.status(500).json({
             message: "Internal server error"
         });

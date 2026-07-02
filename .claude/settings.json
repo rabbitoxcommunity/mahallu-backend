@@ -4,7 +4,21 @@
       "Bash(node -e ' *)",
       "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); print\\(list\\(d.keys\\(\\)\\)\\)\")",
       "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); print\\(json.dumps\\(d.get\\('portal', {}\\), indent=2\\)\\)\")",
-      "Bash(python3 -c ' *)"
+      "Bash(python3 -c ' *)",
+      "Bash(node -c controllers/tenantController.js)",
+      "Bash(node -c models/Tenant.js)",
+      "Bash(node -c routes/tenantRoutes.js)",
+      "Bash(npx eslint *)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" http://localhost:5000/api/tenants)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" http://localhost:8000/api/tenants)",
+      "Bash(curl -s -X POST http://localhost:8000/api/auth/login -H \"Content-Type: application/json\" -d '{\"email\":\"platformadmin@mail.com\",\"password\":\"12345678\"}')",
+      "Bash(lsof -iTCP -sTCP:LISTEN -P)",
+      "Bash(node -c controllers/marriageController.js)",
+      "Bash(curl -s -X POST http://localhost:5005/api/auth/login -H \"Content-Type: application/json\" -d '{\"email\":\"superadmin@test.com\",\"password\":\"password123\"}')",
+      "Bash(curl -s -X POST http://localhost:5005/api/admin/marriages/create -H 'Content-Type: application/json' -H 'Authorization: Bearer __TRACKED_VAR__' -d '{ *)",
+      "Bash(tee /tmp/marriage_create.json)",
+      "Bash(python3 -c \"import fitz\")",
+      "Bash(node /private/tmp/claude-501/-Users-smarthatch-Documents-Backups-MAHALLU-CRM-backend/72972437-6240-45d1-ae24-e1b467251fb5/scratchpad/render-cert-preview.js)"
     ]
   }
 }

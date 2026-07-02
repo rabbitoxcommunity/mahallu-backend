@@ -7,6 +7,21 @@ const TenantSchema = new mongoose.Schema(
             required: true,
             trim: true,
         },
+        nameMalayalam: {
+            type: String,
+            trim: true,
+            default: "",
+        },
+        address: {
+            type: String,
+            trim: true,
+            default: "",
+        },
+        regNo: {
+            type: String,
+            trim: true,
+            default: "",
+        },
         slug: {
             type: String,
             required: true,
