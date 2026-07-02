@@ -56,6 +56,13 @@ exports.getTenantInfo = async (req, res) => {
         about_page:                settings.about_page,
         contact_page:              settings.contact_page,
         blood_donor_show_contact:  settings.blood_donor_show_contact,
+        islamic_services:          settings.islamic_services,
+      },
+      prayer_location: {
+        latitude:  settings.prayer_latitude  || null,
+        longitude: settings.prayer_longitude || null,
+        city:      settings.prayer_city      || '',
+        method:    settings.prayer_method    || 'MWL',
       },
     });
   } catch (err) {
@@ -383,6 +390,7 @@ exports.updateAdminSettings = async (req, res) => {
       'announcements', 'about_page', 'contact_page', 'blood_donor_show_contact',
       'contact_phone', 'contact_email', 'contact_address', 'working_hours',
       'about_description', 'theme_color',
+      'islamic_services', 'prayer_latitude', 'prayer_longitude', 'prayer_city', 'prayer_method',
     ];
     const update = {};
     allowed.forEach(k => { if (req.body[k] !== undefined) update[k] = req.body[k]; });

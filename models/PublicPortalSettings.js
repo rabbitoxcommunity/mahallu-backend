@@ -15,6 +15,13 @@ const PublicPortalSettingsSchema = new mongoose.Schema({
   announcements:        { type: Boolean, default: true },
   about_page:           { type: Boolean, default: true },
   contact_page:         { type: Boolean, default: true },
+  // Islamic Services
+  islamic_services:   { type: Boolean, default: true },
+  // Prayer location (for client-side prayer time calculation)
+  prayer_latitude:    { type: Number, default: null },
+  prayer_longitude:   { type: Number, default: null },
+  prayer_city:        { type: String, default: '' },
+  prayer_method:      { type: String, default: 'MWL' },
   // Blood donor: expose contact number?
   blood_donor_show_contact: { type: Boolean, default: false },
   // Branding / contact info
