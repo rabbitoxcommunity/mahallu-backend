@@ -7,6 +7,8 @@ exports.login = async (req, res) => {
 
     if (!user) return res.status(400).json({ msg: "User not found" });
 
+    if (!user.is_active) return res.status(403).json({ msg: "Account is deactivated" });
+
     const isMatch = await bcrypt.compare(req.body.password, user.password);
 
     if (!isMatch) return res.status(400).json({ msg: "Wrong password" });
