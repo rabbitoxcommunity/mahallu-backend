@@ -39,4 +39,4 @@ app.use("/api/results", require("./routes/resultRoutes"));
 app.use("/api/portal", require("./routes/publicPortalRoutes"));
 app.use("/api/islamic-library", require("./routes/islamicLibraryRoutes"));
 
-app.listen(5005, () => console.log("Server running on port 5005"));
+app.listen(process.env.PORT || 5005, () => console.log("Server running on port 5005"));
