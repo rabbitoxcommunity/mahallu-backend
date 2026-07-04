@@ -4,7 +4,9 @@ const {
   getSummary,
   getStatement,
   getTrends,
-  exportReport
+  exportReport,
+  getIncomeReport,
+  getExpenseReport
 } = require('../controllers/reportController');
 const auth = require('../middleware/auth');
 
@@ -13,6 +15,12 @@ router.use(auth);
 
 // Summary
 router.get('/summary', getSummary);
+
+// Income tab
+router.get('/income', getIncomeReport);
+
+// Expense tab
+router.get('/expense', getExpenseReport);
 
 // Financial Statement
 router.get('/statement', getStatement);
