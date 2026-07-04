@@ -108,9 +108,8 @@ exports.updateSurah = async (req, res) => {
 // DELETE /api/islamic-library/surah/:id
 exports.deleteSurah = async (req, res) => {
   try {
-    const surah = await Surah.findOneAndUpdate(
-      { _id: req.params.id, tenant_id: req.user.tenant_id, is_active: true },
-      { $set: { is_active: false, updated_by: req.user.id } }
+    const surah = await Surah.findOneAndDelete(
+      { _id: req.params.id, tenant_id: req.user.tenant_id }
     );
     if (!surah) return res.status(404).json({ message: 'Surah not found' });
     await deleteFromR2ByUrl(surah.pdf_file);
@@ -206,9 +205,8 @@ exports.updateDua = async (req, res) => {
 // DELETE /api/islamic-library/dua/:id
 exports.deleteDua = async (req, res) => {
   try {
-    const dua = await Dua.findOneAndUpdate(
-      { _id: req.params.id, tenant_id: req.user.tenant_id, is_active: true },
-      { $set: { is_active: false, updated_by: req.user.id } }
+    const dua = await Dua.findOneAndDelete(
+      { _id: req.params.id, tenant_id: req.user.tenant_id }
     );
     if (!dua) return res.status(404).json({ message: 'Dua not found' });
     await deleteFromR2ByUrl(dua.pdf_file);

@@ -350,10 +350,6 @@ exports.deleteDeathRecord = async (req, res) => {
 
         if (!record) return res.status(404).json({ message: 'Record not found' });
 
-        // Soft delete
-        record.is_active = false;
-        await record.save();
-
         // Revert member status if linked
         if (record.member_id) {
             await Member.findByIdAndUpdate(record.member_id, {
@@ -364,6 +360,9 @@ exports.deleteDeathRecord = async (req, res) => {
         }
 
         await deleteFromR2ByUrl(record.pdf_url);
+
+        // Hard delete
+        await DeathRegistry.deleteOne({ _id: record._id, tenant_id });
 
         return res.json({ message: 'Death record deleted successfully' });
     } catch (err) {

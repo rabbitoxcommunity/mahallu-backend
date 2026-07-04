@@ -61,7 +61,11 @@ exports.updateMadrasa = async (req, res) => {
 
 exports.deleteMadrasa = async (req, res) => {
     try {
-        await Madrasa.findOneAndUpdate({ _id: req.params.id, tenant_id: req.user.tenant_id }, { is_active: false });
+        const tenant_id = req.user.tenant_id;
+        // Cascade hard delete: owned subjects & classes → madrasa
+        await MadrasaSubject.deleteMany({ madrasa_id: req.params.id, tenant_id });
+        await MadrasaClass.deleteMany({ madrasa_id: req.params.id, tenant_id });
+        await Madrasa.deleteOne({ _id: req.params.id, tenant_id });
         res.json({ message: 'Madrasa deleted' });
     } catch (err) { res.status(500).json({ message: err.message }); }
 };
@@ -109,7 +113,10 @@ exports.updateClass = async (req, res) => {
 
 exports.deleteClass = async (req, res) => {
     try {
-        await MadrasaClass.findOneAndUpdate({ _id: req.params.id, tenant_id: req.user.tenant_id }, { is_active: false });
+        const tenant_id = req.user.tenant_id;
+        // Cascade hard delete: owned subjects → class
+        await MadrasaSubject.deleteMany({ class_id: req.params.id, tenant_id });
+        await MadrasaClass.deleteOne({ _id: req.params.id, tenant_id });
         res.json({ message: 'Class deleted' });
     } catch (err) { res.status(500).json({ message: err.message }); }
 };
@@ -159,7 +166,7 @@ exports.updateSubject = async (req, res) => {
 
 exports.deleteSubject = async (req, res) => {
     try {
-        await MadrasaSubject.findOneAndUpdate({ _id: req.params.id, tenant_id: req.user.tenant_id }, { is_active: false });
+        await MadrasaSubject.deleteOne({ _id: req.params.id, tenant_id: req.user.tenant_id });
         res.json({ message: 'Subject deleted' });
     } catch (err) { res.status(500).json({ message: err.message }); }
 };
@@ -205,7 +212,7 @@ exports.updateResultType = async (req, res) => {
 
 exports.deleteResultType = async (req, res) => {
     try {
-        await ResultType.findOneAndUpdate({ _id: req.params.id, tenant_id: req.user.tenant_id }, { is_active: false });
+        await ResultType.deleteOne({ _id: req.params.id, tenant_id: req.user.tenant_id });
         res.json({ message: 'Result type deleted' });
     } catch (err) { res.status(500).json({ message: err.message }); }
 };
@@ -261,7 +268,7 @@ exports.updateAcademicYear = async (req, res) => {
 
 exports.deleteAcademicYear = async (req, res) => {
     try {
-        await AcademicYear.findOneAndUpdate({ _id: req.params.id, tenant_id: req.user.tenant_id }, { is_active: false });
+        await AcademicYear.deleteOne({ _id: req.params.id, tenant_id: req.user.tenant_id });
         res.json({ message: 'Academic year deleted' });
     } catch (err) { res.status(500).json({ message: err.message }); }
 };

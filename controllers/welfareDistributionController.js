@@ -182,11 +182,7 @@ exports.updateDistribution = async (req, res) => {
 exports.deleteDistribution = async (req, res) => {
   try {
     const tenant_id = req.user.tenant_id;
-    const distribution = await WelfareDistribution.findOneAndUpdate(
-      { _id: req.params.id, tenant_id },
-      { is_active: false },
-      { new: true }
-    );
+    const distribution = await WelfareDistribution.findOneAndDelete({ _id: req.params.id, tenant_id });
     if (!distribution) return res.status(404).json({ message: 'Distribution not found' });
     res.json({ message: 'Distribution deleted successfully' });
   } catch (err) {

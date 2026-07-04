@@ -239,18 +239,14 @@ exports.deleteDueExpense = async (req, res) => {
         const tenant_id = req.user.tenant_id;
         const { id } = req.params;
 
-        const result = await DueExpense.updateOne(
-            { _id: id, tenant_id, is_active: true },
-            { $set: { is_active: false } }
-        );
-        if (result.matchedCount === 0) return res.status(404).json({ message: 'Expense record not found' });
+        const template = await DueExpense.findOne({ _id: id, tenant_id });
+        if (!template) return res.status(404).json({ message: 'Expense record not found' });
 
-        await DueExpenseEntry.updateMany(
-            { template_id: id, tenant_id },
-            { $set: { is_active: false } }
-        );
+        // Cascade hard delete: entries → template
+        await DueExpenseEntry.deleteMany({ template_id: id, tenant_id });
+        await DueExpense.deleteOne({ _id: id, tenant_id });
 
-        res.json({ message: 'Due expense subscription deactivated' });
+        res.json({ message: 'Due expense subscription deleted' });
     } catch (err) {
         console.error('Error deleting due expense:', err);
         res.status(500).json({ message: err.message });

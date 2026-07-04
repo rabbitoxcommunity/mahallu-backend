@@ -149,12 +149,13 @@ exports.updateProgram = async (req, res) => {
 exports.deleteProgram = async (req, res) => {
   try {
     const tenant_id = req.user.tenant_id;
-    const program = await WelfareProgram.findOneAndUpdate(
-      { _id: req.params.id, tenant_id },
-      { is_active: false },
-      { new: true }
-    );
+    const program = await WelfareProgram.findOne({ _id: req.params.id, tenant_id });
     if (!program) return res.status(404).json({ message: 'Program not found' });
+
+    // Cascade hard delete: distributions belonging to this program → program
+    await WelfareDistribution.deleteMany({ program_id: program._id, tenant_id });
+    await WelfareProgram.deleteOne({ _id: program._id, tenant_id });
+
     res.json({ message: 'Program deleted successfully' });
   } catch (err) {
     res.status(500).json({ message: err.message });

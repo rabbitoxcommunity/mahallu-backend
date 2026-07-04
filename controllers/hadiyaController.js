@@ -214,13 +214,10 @@ exports.deleteHadiyaCollection = async (req, res, next) => {
         const tenant_id = req.user.tenant_id;
         const { id } = req.params;
 
-        const collection = await HadiyaCollection.findOne({ _id: id, tenant_id, is_active: true });
+        const collection = await HadiyaCollection.findOneAndDelete({ _id: id, tenant_id });
         if (!collection) {
             return res.status(404).json({ message: 'Collection not found' });
         }
-
-        collection.is_active = false;
-        await collection.save();
 
         res.json({ message: 'Hadiya collection deleted successfully' });
     } catch (err) {

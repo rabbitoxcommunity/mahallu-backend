@@ -236,18 +236,19 @@ exports.deleteDueIncome = async (req, res) => {
         const tenant_id = req.user.tenant_id;
         const { id } = req.params;
 
-        const result = await DueBasedIncome.updateOne(
-            { _id: id, tenant_id, is_active: true },
-            { $set: { is_active: false } }
-        );
-        if (result.matchedCount === 0) return res.status(404).json({ message: 'Income record not found' });
+        const template = await DueBasedIncome.findOne({ _id: id, tenant_id });
+        if (!template) return res.status(404).json({ message: 'Income record not found' });
 
-        await DueBasedEntry.updateMany(
-            { template_id: id, tenant_id },
-            { $set: { is_active: false } }
-        );
+        // Cascade hard delete: payments → entries → template
+        const entries = await DueBasedEntry.find({ template_id: id, tenant_id }).select('_id');
+        const entryIds = entries.map(e => e._id);
+        if (entryIds.length > 0) {
+            await IncomePayment.deleteMany({ tenant_id, entry_id: { $in: entryIds } });
+        }
+        await DueBasedEntry.deleteMany({ template_id: id, tenant_id });
+        await DueBasedIncome.deleteOne({ _id: id, tenant_id });
 
-        res.json({ message: 'Due-based income subscription deactivated successfully' });
+        res.json({ message: 'Due-based income subscription deleted successfully' });
     } catch (err) {
         console.error('Error deleting due income:', err);
         res.status(500).json({ message: err.message });
@@ -507,11 +508,8 @@ exports.deleteDirectIncome = async (req, res) => {
         const tenant_id = req.user.tenant_id;
         const { id } = req.params;
 
-        const income = await DirectIncome.findOne({ _id: id, tenant_id, is_active: true });
+        const income = await DirectIncome.findOneAndDelete({ _id: id, tenant_id });
         if (!income) return res.status(404).json({ message: 'Income record not found' });
-
-        income.is_active = false;
-        await income.save();
 
         res.json({ message: 'Direct income deleted successfully' });
     } catch (err) {
@@ -534,9 +532,16 @@ exports.getIncomeSummary = async (req, res) => {
         const currentYear  = year  ? Number(year)  : now.getFullYear();
         const currentMonth = month ? Number(month) : now.getMonth() + 1;
 
+        // Only summarize entries that belong to a still-existing, active template,
+        // so orphaned entries (template deleted) never inflate the totals.
+        const activeTemplateIds = (await DueBasedIncome
+            .find({ tenant_id, is_active: true })
+            .select('_id')).map(t => t._id);
+
         // --- Due-based: aggregate from DueBasedEntry ---
         const dueEntryQuery = {
             tenant_id: new mongoose.Types.ObjectId(tenant_id),
+            template_id: { $in: activeTemplateIds },
             is_active: true,
         };
         if (year)  dueEntryQuery.year  = currentYear;
@@ -613,6 +618,7 @@ exports.getIncomeSummary = async (req, res) => {
                 {
                     $match: {
                         tenant_id: new mongoose.Types.ObjectId(tenant_id),
+                        template_id: { $in: activeTemplateIds },
                         is_active: true,
                         year:  now.getFullYear(),
                         month: now.getMonth() + 1,
