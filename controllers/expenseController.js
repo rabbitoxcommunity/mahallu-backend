@@ -1,3 +1,4 @@
+const mongoose = require('mongoose');
 const Expense = require('../models/Expense');
 const Counter = require('../models/Counter');
 const Tenant = require('../models/Tenant');
@@ -294,7 +295,7 @@ exports.deleteExpense = async (req, res, next) => {
 // @access  Private
 exports.getExpenseSummary = async (req, res, next) => {
   try {
-    const tenant_id = req.user.tenant_id;
+    const tenant_id = new mongoose.Types.ObjectId(req.user.tenant_id);
     const now = new Date();
     const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);

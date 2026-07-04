@@ -12,6 +12,12 @@ const expenseCategorySchema = new mongoose.Schema({
     required: true,
     trim: true
   },
+  type: {
+    type: String,
+    enum: ['due', 'direct'],
+    required: true,
+    default: 'direct'
+  },
   description: {
     type: String,
     trim: true
@@ -29,7 +35,7 @@ const expenseCategorySchema = new mongoose.Schema({
   timestamps: true
 });
 
-// Compound unique index on tenant_id + name
-expenseCategorySchema.index({ tenant_id: 1, name: 1 }, { unique: true });
+// Compound unique index for unique category name per tenant per type
+expenseCategorySchema.index({ tenant_id: 1, name: 1, type: 1 }, { unique: true });
 
 module.exports = mongoose.model('ExpenseCategory', expenseCategorySchema);

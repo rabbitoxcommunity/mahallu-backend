@@ -10,7 +10,8 @@ exports.getExpenseCategories = async (req, res, next) => {
       tenant_id: req.user.tenant_id,
       is_active: true
     };
-    
+    if (type) query.type = type;
+
     const categories = await ExpenseCategory.find(query)
       .populate('created_by', 'name')
       .sort({ name: 1 });
@@ -48,10 +49,15 @@ exports.getExpenseCategoryById = async (req, res, next) => {
 // @access  Private
 exports.createExpenseCategory = async (req, res, next) => {
   try {
-    const { name, description } = req.body;
+    const { name, type, description } = req.body;
+
+    if (!name || !type) {
+      return res.status(400).json({ message: 'Name and type are required' });
+    }
 
     const category = await ExpenseCategory.create({
       name,
+      type,
       description,
       tenant_id: req.user.tenant_id,
       created_by: req.user.id
@@ -63,7 +69,7 @@ exports.createExpenseCategory = async (req, res, next) => {
   } catch (err) {
     console.error('Error creating expense category:', err);
     if (err.code === 11000) {
-      return res.status(400).json({ message: 'Category with this name already exists' });
+      return res.status(400).json({ message: 'Category with this name already exists for this type' });
     }
     res.status(500).json({ message: err.message });
   }
@@ -74,11 +80,14 @@ exports.createExpenseCategory = async (req, res, next) => {
 // @access  Private
 exports.updateExpenseCategory = async (req, res, next) => {
   try {
-    const { name, description } = req.body;
+    const { name, type, description } = req.body;
+
+    const updateFields = { name, description };
+    if (type) updateFields.type = type;
 
     const category = await ExpenseCategory.findOneAndUpdate(
       { _id: req.params.id, tenant_id: req.user.tenant_id },
-      { name, description },
+      updateFields,
       { new: true, runValidators: true }
     ).populate('created_by', 'name');
 
@@ -90,7 +99,7 @@ exports.updateExpenseCategory = async (req, res, next) => {
   } catch (err) {
     console.error('Error updating expense category:', err);
     if (err.code === 11000) {
-      return res.status(400).json({ message: 'Category with this name already exists' });
+      return res.status(400).json({ message: 'Category with this name already exists for this type' });
     }
     res.status(500).json({ message: err.message });
   }

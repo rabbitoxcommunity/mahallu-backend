@@ -5,10 +5,10 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 .DS_Store
-# seedTestData.js
-# seedTestData.js.map
-# seedUsers.js
-# seedUsers.js.map
+seedTestData.js
+seedTestData.js.map
+seedUsers.js
+seedUsers.js.map
 public/certificates
 .claude
 .claude/settings.json

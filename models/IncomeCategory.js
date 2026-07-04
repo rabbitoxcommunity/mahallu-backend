@@ -9,7 +9,7 @@ const incomeCategorySchema = new mongoose.Schema({
   },
   type: {
     type: String,
-    enum: ['due', 'income'],
+    enum: ['due', 'direct'],
     required: true
   },
   description: {

@@ -353,8 +353,15 @@ exports.getDueExpenseSummary = async (req, res) => {
         const currentYear  = year  ? Number(year)  : now.getFullYear();
         const currentMonth = month ? Number(month) : now.getMonth() + 1;
 
+        // Only summarize entries that belong to a still-existing, active template,
+        // so orphaned entries (template deleted) never inflate the totals.
+        const activeTemplateIds = (await DueExpense
+            .find({ tenant_id, is_active: true })
+            .select('_id')).map(t => t._id);
+
         const matchQuery = {
             tenant_id: new mongoose.Types.ObjectId(tenant_id),
+            template_id: { $in: activeTemplateIds },
             is_active:  true,
         };
         if (year)  matchQuery.year  = currentYear;
