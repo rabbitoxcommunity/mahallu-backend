@@ -45,7 +45,6 @@ const MemberSchema = new mongoose.Schema(
         general_education: String,
 
         occupation: String,
-        monthly_income: Number,
 
         blood_group: String,
         medical_notes: String,
