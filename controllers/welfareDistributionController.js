@@ -22,6 +22,18 @@ const populateFamilyName = async (distObj) => {
   return distObj;
 };
 
+// Sum of active distributions already recorded against a program, optionally excluding
+// one distribution (used when editing, so the record being edited doesn't count itself twice).
+const getAlreadyDistributed = async (tenant_id, program_id, excludeDistributionId) => {
+  const match = { tenant_id: new mongoose.Types.ObjectId(tenant_id), program_id: new mongoose.Types.ObjectId(program_id), is_active: true };
+  if (excludeDistributionId) match._id = { $ne: new mongoose.Types.ObjectId(excludeDistributionId) };
+  const result = await WelfareDistribution.aggregate([
+    { $match: match },
+    { $group: { _id: null, total: { $sum: '$amount' } } }
+  ]);
+  return result[0]?.total || 0;
+};
+
 // POST /api/community/welfare/distributions
 exports.createDistribution = async (req, res) => {
   try {
@@ -50,6 +62,19 @@ exports.createDistribution = async (req, res) => {
 
     const program = await WelfareProgram.findOne({ _id: program_id, tenant_id, is_active: true });
     if (!program) return res.status(404).json({ message: 'Program not found' });
+
+    // Only enforce a cap when the program actually has a budget set — a program with no
+    // budget (0) is treated as untracked/uncapped.
+    if (program.budget > 0) {
+      const alreadyDistributed = await getAlreadyDistributed(tenant_id, program_id);
+      const remaining = program.budget - alreadyDistributed;
+      if (Number(amount) > remaining) {
+        return res.status(400).json({
+          message: `Amount exceeds the available program budget. Remaining balance: ₹${remaining.toLocaleString()}`,
+          details: { budget: program.budget, already_distributed: alreadyDistributed, remaining_balance: remaining, requested_amount: Number(amount) }
+        });
+      }
+    }
 
     docData.distribution_no = await generateDistributionNo(tenant_id);
 
@@ -145,6 +170,25 @@ exports.updateDistribution = async (req, res) => {
   try {
     const { is_external, beneficiary_name, beneficiary_contact, program_id, distribution_type, funding_source, amount, distribution_date, notes } = req.body;
     const tenant_id = req.user.tenant_id;
+
+    if (!amount || Number(amount) <= 0) return res.status(400).json({ message: 'Amount must be positive' });
+
+    const existing = await WelfareDistribution.findOne({ _id: req.params.id, tenant_id });
+    if (!existing) return res.status(404).json({ message: 'Distribution not found' });
+
+    const targetProgramId = program_id || existing.program_id;
+    const program = await WelfareProgram.findOne({ _id: targetProgramId, tenant_id });
+    if (program && program.budget > 0) {
+      // Exclude this distribution's own current amount so editing it doesn't double-count.
+      const alreadyDistributed = await getAlreadyDistributed(tenant_id, targetProgramId, existing._id);
+      const remaining = program.budget - alreadyDistributed;
+      if (Number(amount) > remaining) {
+        return res.status(400).json({
+          message: `Amount exceeds the available program budget. Remaining balance: ₹${remaining.toLocaleString()}`,
+          details: { budget: program.budget, already_distributed: alreadyDistributed, remaining_balance: remaining, requested_amount: Number(amount) }
+        });
+      }
+    }
 
     const updateData = { program_id, distribution_type, funding_source, amount: Number(amount), distribution_date, notes };
 
