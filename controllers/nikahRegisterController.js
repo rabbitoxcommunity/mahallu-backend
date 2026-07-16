@@ -15,12 +15,18 @@ const fmtDate = (d) =>
 exports.generateRegister = async (req, res) => {
   let page;
   try {
+    const b = req.body || {};
+    const isMalayalam = b.certificate_language === 'ml';
+
     const tenant = await Tenant.findById(req.user.tenant_id).select('name nameMalayalam address addressMalayalam regNo');
-    const orgName = tenant?.nameMalayalam || tenant?.name || 'Mahallu';
-    const orgAddress = tenant?.addressMalayalam || tenant?.address || '';
+    const orgName = isMalayalam
+      ? (tenant?.nameMalayalam || tenant?.name || 'Mahallu')
+      : (tenant?.name || tenant?.nameMalayalam || 'Mahallu');
+    const orgAddress = isMalayalam
+      ? (tenant?.addressMalayalam || tenant?.address || '')
+      : (tenant?.address || tenant?.addressMalayalam || '');
     const orgRegNo = tenant?.regNo || '';
 
-    const b = req.body || {};
     const party = b.our_party === 'bride' ? 'bride' : 'groom';
 
     const data = {
