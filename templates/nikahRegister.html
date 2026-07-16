@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8" />
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Malayalam&family=Noto+Naskh+Arabic&family=Noto+Sans&display=swap');
+
+    @page { size: A4; margin: 0; }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Noto Sans Malayalam', 'Noto Naskh Arabic', 'Noto Sans', sans-serif;
+      font-size: 10px;
+      color: #000;
+      background: #fff;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+
+    .page {
+      width: 210mm;
+      height: 297mm;
+      padding: 10mm 12mm;
+      background: #fff;
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    /* Screen-only preview chrome (ignored in the generated PDF) */
+    @media screen {
+      body { background: #e8e8e8; display: flex; justify-content: center; padding: 20px; }
+      .page { box-shadow: 0 4px 32px rgba(0,0,0,0.18); }
+    }
+
+    /* ── HEADER ── */
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 2px solid #000;
+      padding-bottom: 6px;
+      margin-bottom: 5px;
+    }
+    .header-center { text-align: center; flex: 1; }
+    .org-name      { font-size: 14px; font-weight: bold; letter-spacing: 0.3px; }
+    .org-sub       { font-size: 9px; color: #333; margin-top: 2px; line-height: 1.5; }
+    .bismillah     { font-size: 18px; color: #000; margin-bottom: 2px; }
+
+    .reg-no-box {
+      border: 1px solid #000;
+      padding: 4px 8px;
+      font-size: 9px;
+      text-align: center;
+      min-width: 72px;
+    }
+    .reg-no-box .box-label { font-weight: bold; border-bottom: 1px solid #000; padding-bottom: 2px; margin-bottom: 4px; }
+    .reg-no-box .box-value { height: 14px; }
+
+    /* ── FORM TITLE ── */
+    .form-title {
+      text-align: center;
+      font-size: 13px;
+      font-weight: bold;
+      letter-spacing: 1px;
+      border: 1.5px solid #000;
+      padding: 4px;
+      background: #f5f5f5;
+      margin-bottom: 5px;
+    }
+
+    /* ── PARTY ROW ── */
+    .party-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 9.5px;
+      margin-bottom: 5px;
+      border: 1px solid #000;
+      padding: 3px 8px;
+      background: #fafafa;
+    }
+    .party-row .label { font-weight: bold; margin-right: 4px; }
+    .checkbox-wrap    { display: flex; align-items: center; gap: 4px; }
+    .checkbox { width: 11px; height: 11px; border: 1px solid #000; display: inline-block; text-align: center; line-height: 11px; font-size: 9px; flex-shrink: 0; }
+
+    /* ── SECTION HEADER ── */
+    .section-header {
+      background: #000;
+      color: #fff;
+      font-size: 9.5px;
+      font-weight: bold;
+      padding: 3px 8px;
+      letter-spacing: 0.3px;
+    }
+
+    /* ── FORM TABLE ── */
+    .form-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 4px;
+    }
+    .form-table td {
+      border: 1px solid #aaa;
+      padding: 2.5px 6px;
+      font-size: 9.5px;
+      vertical-align: middle;
+      line-height: 1.4;
+    }
+    .form-table td.lbl  { font-weight: bold; background: #f8f8f8; width: 30%; white-space: nowrap; }
+    .form-table td.val  { width: 20%; }
+    .form-table td.lbl2 { font-weight: bold; background: #f8f8f8; width: 20%; white-space: nowrap; }
+    .form-table td.val2 { width: 30%; }
+
+    .form-table td.sig-cell {
+      height: 26px;
+      vertical-align: bottom;
+      padding-bottom: 3px;
+    }
+
+    /* ── WITNESS / OFFICE TABLE ── */
+    .wide-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 4px;
+    }
+    .wide-table td {
+      border: 1px solid #aaa;
+      padding: 2.5px 6px;
+      font-size: 9.5px;
+      vertical-align: top;
+      line-height: 1.4;
+    }
+    .wide-table td.lbl { font-weight: bold; background: #f8f8f8; width: 18%; white-space: normal; }
+    .wide-table td.val-tall { height: 62px; }
+
+    /* ── SIGNATURES ── */
+    .sig-section {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      padding-top: 4px;
+    }
+    .sig-block { text-align: center; }
+    .sig-line  { width: 120px; border-top: 1.5px solid #000; padding-top: 3px; font-size: 8.5px; font-weight: bold; }
+    .sig-sub   { font-size: 8px; color: #444; margin-top: 1px; }
+    .date-block { font-size: 9px; }
+    .date-line  { display: inline-block; width: 90px; border-bottom: 1px solid #000; margin-left: 4px; }
+  </style>
+</head>
+<body>
+<div class="page">
+
+  <!-- HEADER -->
+  <div class="header">
+    <div class="reg-no-box">
+      <div class="box-label">രജിസ്റ്റർ നം.</div>
+      <div class="box-value">{{register_no}}</div>
+    </div>
+    <div class="header-center">
+      <div class="bismillah">﷽</div>
+      <div class="org-name">{{org_name}}</div>
+      <div class="org-sub">{{org_address}} &nbsp;|&nbsp; Reg. No: {{org_reg_no}}</div>
+    </div>
+    <div class="reg-no-box">
+      <div class="box-label">തിയതി</div>
+      <div class="box-value">{{date}}</div>
+    </div>
+  </div>
+
+  <!-- TITLE -->
+  <div class="form-title">വിവാഹ രജിസ്റ്റർ — Nikah Register</div>
+
+  <!-- PARTY TYPE -->
+  <div class="party-row">
+    <span class="label">ഞങ്ങളുടെ ഭാഗത്തെ വ്യക്തി:</span>
+    <span class="checkbox-wrap"><span class="checkbox">{{groom_check}}</span> പുരുഷൻ (Groom)</span>
+    &nbsp;&nbsp;
+    <span class="checkbox-wrap"><span class="checkbox">{{bride_check}}</span> സ്ത്രീ (Bride)</span>
+  </div>
+
+  <!-- GROOM -->
+  <div class="section-header">വരന്റെ വിശദാംശങ്ങൾ — Groom Details</div>
+  <table class="form-table">
+    <tr>
+      <td class="lbl">പേര് / Name</td>
+      <td colspan="3">{{groom_name}}</td>
+    </tr>
+    <tr>
+      <td class="lbl">പിതാവ് / Father</td>
+      <td class="val">{{groom_father}}</td>
+      <td class="lbl2">മാതാവ് / Mother</td>
+      <td class="val2">{{groom_mother}}</td>
+    </tr>
+    <tr>
+      <td class="lbl">വീട്ടുപേര് / House</td>
+      <td class="val">{{groom_house}}</td>
+      <td class="lbl2">മഹല്ല്</td>
+      <td class="val2">{{groom_mahallu}}</td>
+    </tr>
+    <tr>
+      <td class="lbl">വിലാസം / Address</td>
+      <td colspan="3">{{groom_address}}</td>
+    </tr>
+    <tr>
+      <td class="lbl">എത്രാമത്തെ നിക്കാഹ്</td>
+      <td class="val">{{groom_nikkah_count}}</td>
+      <td class="lbl2">മുൻ നിക്കാഹ് വിവരം</td>
+      <td class="val2">{{groom_prev_nikkah}}</td>
+    </tr>
+    <tr>
+      <td class="lbl">വരന്റെ ഒപ്പ്</td>
+      <td colspan="3" class="sig-cell"></td>
+    </tr>
+  </table>
+
+  <!-- BRIDE -->
+  <div class="section-header">വധുവിന്റെ വിശദാംശങ്ങൾ — Bride Details</div>
+  <table class="form-table">
+    <tr>
+      <td class="lbl">പേര് / Name</td>
+      <td colspan="3">{{bride_name}}</td>
+    </tr>
+    <tr>
+      <td class="lbl">പിതാവ് / Father</td>
+      <td class="val">{{bride_father}}</td>
+      <td class="lbl2">മാതാവ് / Mother</td>
+      <td class="val2">{{bride_mother}}</td>
+    </tr>
+    <tr>
+      <td class="lbl">വീട്ടുപേര് / House</td>
+      <td class="val">{{bride_house}}</td>
+      <td class="lbl2">മഹല്ല്</td>
+      <td class="val2">{{bride_mahallu}}</td>
+    </tr>
+    <tr>
+      <td class="lbl">വിലാസം / Address</td>
+      <td colspan="3">{{bride_address}}</td>
+    </tr>
+    <tr>
+      <td class="lbl">എത്രാമത്തെ നിക്കാഹ്</td>
+      <td class="val">{{bride_nikkah_count}}</td>
+      <td class="lbl2">മുൻ നിക്കാഹ് വിവരം</td>
+      <td class="val2">{{bride_prev_nikkah}}</td>
+    </tr>
+    <tr>
+      <td class="lbl">പിതാവിന്റെ ഒപ്പ്</td>
+      <td colspan="3" class="sig-cell"></td>
+    </tr>
+  </table>
+
+  <!-- NIKAH DETAILS -->
+  <div class="section-header">നിക്കാഹ് വിശദാംശങ്ങൾ — Nikah Details</div>
+  <table class="form-table">
+    <tr>
+      <td class="lbl">നിക്കാഹ് തിയതി</td>
+      <td class="val">{{nikah_date}}</td>
+      <td class="lbl2">നിക്കാഹ് സ്ഥലം</td>
+      <td class="val2">{{nikah_place}}</td>
+    </tr>
+    <tr>
+      <td class="lbl">നിക്കാഹ് ചെയ്യുന്നത്</td>
+      <td class="val">{{nikah_performer}}</td>
+      <td class="lbl2">മൊബൈൽ നമ്പർ</td>
+      <td class="val2">{{mobile}}</td>
+    </tr>
+    <tr>
+      <td class="lbl">മഹർ / Mahr</td>
+      <td colspan="3"></td>
+    </tr>
+  </table>
+
+  <!-- WITNESSES / OFFICE -->
+  <div class="section-header">സാക്ഷികളും ഒപ്പുകളും — Witnesses & Signatures</div>
+  <table class="wide-table">
+    <tr>
+      <td class="lbl">വരന്റെ സാക്ഷി<br/><span style="font-weight:normal;font-size:8.5px">പേര്, അഡ്രസ്, ഒപ്പ്</span></td>
+      <td class="val-tall"></td>
+      <td class="lbl">വധുവിന്റെ സാക്ഷി<br/><span style="font-weight:normal;font-size:8.5px">പേര്, അഡ്രസ്, ഒപ്പ്</span></td>
+      <td class="val-tall"></td>
+    </tr>
+    <tr>
+      <td class="lbl">ഓലിക്കാരന്റെ ഒപ്പ്<br/><span style="font-weight:normal;font-size:8.5px">വധുവുമായുള്ള ബന്ധം</span></td>
+      <td class="val-tall"></td>
+      <td class="lbl">നിക്കാഹ് ചെയ്തവർ<br/><span style="font-weight:normal;font-size:8.5px">ജോലി, പേര്, അഡ്രസ്, ഒപ്പ്</span></td>
+      <td class="val-tall"></td>
+    </tr>
+  </table>
+
+  <!-- SIGNATURES -->
+  <div class="sig-section">
+    <div>
+      <div class="date-block">തിയതി / Date: <span class="date-line"></span></div>
+    </div>
+    <div class="sig-block">
+      <div class="sig-line">പ്രസിഡന്റ് / സെക്രട്ടറി</div>
+      <div class="sig-sub">{{org_name}}</div>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

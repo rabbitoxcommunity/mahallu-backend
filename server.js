@@ -31,6 +31,7 @@ app.use("/api/settings/expense-categories", require("./routes/expenseCategoryRou
 app.use("/api/settings/varisankhya-config", require("./routes/varisankhyaConfigRoutes"));
 app.use("/api/admin/marriages", require("./routes/adminMarriageRoutes"));
 app.use("/api/admin/marriage-noc", require("./routes/adminMarriageNocRoutes"));
+app.use("/api/admin/nikah-register", require("./routes/nikahRegisterRoutes"));
 app.use("/api/public/marriages", require("./routes/publicMarriageRoutes"));
 app.use("/api/community/welfare", require("./routes/welfareRoutes"));
 app.use("/api/community/death", require("./routes/deathRoutes"));
