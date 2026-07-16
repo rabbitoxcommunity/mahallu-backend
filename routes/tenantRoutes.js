@@ -1,4 +1,5 @@
 const router = require("express").Router();
+const multer = require("multer");
 const auth = require("../middleware/auth");
 const role = require("../middleware/role");
 const {
@@ -6,14 +7,21 @@ const {
     getTenants,
     updateTenantStatus,
     getTenant,
-    updateTenant
+    updateTenant,
+    viewSignature
 } = require("../controllers/tenantController");
+
+const upload = multer({ storage: multer.memoryStorage() });
+const uploadSignature = upload.single("signatorySignature");
 
 // Create tenant - Platform Admin only
 router.post("/create", auth, role("platformAdmin"), createTenant);
 
 // Get all tenants with pagination - Platform Admin only
 router.get("/", auth, role("platformAdmin"), getTenants);
+
+// Stream the current user's own tenant signatory's signature image - any authenticated user
+router.get("/signature", auth, viewSignature);
 
 // Get single tenant details - Platform Admin only
 router.get("/:id", auth, role("platformAdmin"), getTenant);
@@ -22,6 +30,6 @@ router.get("/:id", auth, role("platformAdmin"), getTenant);
 router.patch("/:id/status", auth, role("platformAdmin"), updateTenantStatus);
 
 // Update tenant details - Platform Admin only
-router.put("/:id", auth, role("platformAdmin"), updateTenant);
+router.put("/:id", auth, role("platformAdmin"), uploadSignature, updateTenant);
 
 module.exports = router;

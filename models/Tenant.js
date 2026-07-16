@@ -27,6 +27,21 @@ const TenantSchema = new mongoose.Schema(
             trim: true,
             default: "",
         },
+        signatoryName: {
+            type: String,
+            trim: true,
+            default: "",
+        },
+        signatoryTitle: {
+            type: String,
+            enum: ["President", "Secretary"],
+            default: "Secretary",
+        },
+        signatorySignature: {
+            type: String,
+            trim: true,
+            default: "",
+        },
         slug: {
             type: String,
             required: true,

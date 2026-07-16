@@ -227,7 +227,7 @@ exports.updateUserStatus = async (req, res) => {
 // Get current user details
 exports.getCurrentUser = async (req, res) => {
     try {
-        const user = await User.findById(req.user.id).select("-password").populate('tenant_id', 'name');
+        const user = await User.findById(req.user.id).select("-password").populate('tenant_id', 'name signatoryName signatoryTitle signatorySignature');
 
         if (!user) {
             return res.status(404).json({
@@ -243,6 +243,9 @@ exports.getCurrentUser = async (req, res) => {
                 role: user.role,
                 tenant_id: user.tenant_id?._id || user.tenant_id,
                 tenant_name: user.tenant_id?.name || '',
+                signatoryName: user.tenant_id?.signatoryName || '',
+                signatoryTitle: user.tenant_id?.signatoryTitle || '',
+                signatorySignature: user.tenant_id?.signatorySignature || '',
                 permissions: user.permissions,
                 is_active: user.is_active,
                 createdAt: user.createdAt,

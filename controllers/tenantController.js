@@ -1,6 +1,15 @@
 const Tenant = require("../models/Tenant");
 const User = require("../models/User");
 const bcrypt = require("bcryptjs");
+const path = require("path");
+const { uploadToR2, deleteFromR2ByUrl, streamFromR2ByUrl } = require("../utils/r2Client");
+
+// Uploads a signature image to R2 under a tenant-scoped folder and returns the public URL.
+const uploadSignature = async (tenantSlug, file) => {
+    const ext = path.extname(file.originalname) || "";
+    const key = `signatures/${tenantSlug}/signatory${ext}`;
+    return uploadToR2(key, file.buffer, { contentType: file.mimetype });
+};
 
 // Create tenant and auto-create super admin
 exports.createTenant = async (req, res) => {
@@ -269,6 +278,9 @@ exports.getTenant = async (req, res) => {
                 address: tenant.address,
                 addressMalayalam: tenant.addressMalayalam,
                 regNo: tenant.regNo,
+                signatoryName: tenant.signatoryName,
+                signatoryTitle: tenant.signatoryTitle,
+                signatorySignature: tenant.signatorySignature,
                 slug: tenant.slug,
                 code: tenant.code,
                 status: tenant.status,
@@ -285,11 +297,11 @@ exports.getTenant = async (req, res) => {
     }
 };
 
-// Update tenant details (name, Malayalam name, address, registration number)
+// Update tenant details (name, Malayalam name, address, registration number, signatory)
 exports.updateTenant = async (req, res) => {
     try {
         const { id } = req.params;
-        const { name, nameMalayalam, address, addressMalayalam, regNo } = req.body;
+        const { name, nameMalayalam, address, addressMalayalam, regNo, signatoryName, signatoryTitle } = req.body;
 
         if (!name || !name.trim()) {
             return res.status(400).json({
@@ -297,17 +309,33 @@ exports.updateTenant = async (req, res) => {
             });
         }
 
-        const tenant = await Tenant.findByIdAndUpdate(
-            id,
-            { name, nameMalayalam, address, addressMalayalam, regNo },
-            { new: true, runValidators: true }
-        );
-
-        if (!tenant) {
+        const existing = await Tenant.findById(id).select("slug signatorySignature");
+        if (!existing) {
             return res.status(404).json({
                 message: "Tenant not found"
             });
         }
+
+        const update = { name, nameMalayalam, address, addressMalayalam, regNo, signatoryName, signatoryTitle };
+
+        const signatureFile = req.file;
+        if (signatureFile) {
+            const newSignatureUrl = await uploadSignature(existing.slug, signatureFile);
+            // The upload key is deterministic (same slug -> same key), so a same-extension
+            // re-upload already overwrote the old object in place. Only delete the old object
+            // when the extension changed and it therefore lives under a different key -
+            // otherwise this would delete the file we just uploaded.
+            if (existing.signatorySignature && existing.signatorySignature !== newSignatureUrl) {
+                await deleteFromR2ByUrl(existing.signatorySignature);
+            }
+            update.signatorySignature = newSignatureUrl;
+        }
+
+        const tenant = await Tenant.findByIdAndUpdate(
+            id,
+            update,
+            { new: true, runValidators: true }
+        );
 
         res.json({
             message: "Tenant updated successfully",
@@ -318,6 +346,9 @@ exports.updateTenant = async (req, res) => {
                 address: tenant.address,
                 addressMalayalam: tenant.addressMalayalam,
                 regNo: tenant.regNo,
+                signatoryName: tenant.signatoryName,
+                signatoryTitle: tenant.signatoryTitle,
+                signatorySignature: tenant.signatorySignature,
                 slug: tenant.slug,
                 code: tenant.code,
                 status: tenant.status,
@@ -326,6 +357,34 @@ exports.updateTenant = async (req, res) => {
         });
     } catch (error) {
         console.error("Update tenant error:", error);
+        res.status(500).json({
+            message: "Internal server error"
+        });
+    }
+};
+
+// Stream the requesting user's own tenant signature image
+exports.viewSignature = async (req, res) => {
+    try {
+        const tenant = await Tenant.findById(req.user.tenant_id).select("signatorySignature");
+        if (!tenant) {
+            return res.status(404).json({ message: "Tenant not found" });
+        }
+
+        if (!tenant.signatorySignature) {
+            return res.status(404).json({ message: "Signature not set" });
+        }
+
+        const obj = await streamFromR2ByUrl(tenant.signatorySignature);
+        if (!obj) {
+            return res.status(404).json({ message: "Signature not found" });
+        }
+
+        res.setHeader("Content-Type", obj.contentType || "image/png");
+        if (obj.contentLength) res.setHeader("Content-Length", obj.contentLength);
+        obj.body.pipe(res);
+    } catch (error) {
+        console.error("View signature error:", error);
         res.status(500).json({
             message: "Internal server error"
         });
