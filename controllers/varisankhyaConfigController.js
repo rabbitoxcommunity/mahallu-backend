@@ -1,4 +1,22 @@
 const VarisankhyaConfig = require('../models/VarisankhyaConfig');
+const Varisankhya = require('../models/Varisankhya');
+const House = require('../models/House');
+
+// Propagate a changed config amount to already-generated dues.
+// Only fully-unpaid dues (amount_paid === 0) are touched so that partial/paid
+// history stays intact. A new amount of 0 clears the due and marks it paid.
+const applyAmountToOutstandingDues = async (tenant_id, category, newAmount) => {
+  const houses = await House.find({ tenant_id, economic_status: category }).select('_id');
+  if (houses.length === 0) return;
+
+  const houseIds = houses.map((h) => h._id);
+  const amount = Number(newAmount);
+
+  await Varisankhya.updateMany(
+    { tenant_id, house_id: { $in: houseIds }, status: 'unpaid' },
+    { $set: { amount_due: amount, status: amount <= 0 ? 'paid' : 'unpaid' } }
+  );
+};
 
 // @desc    Get all varisankhya configs for tenant
 // @route   GET /api/settings/varisankhya-config
@@ -64,6 +82,9 @@ exports.createOrUpdateConfig = async (req, res, next) => {
       }
     ).populate('created_by', 'name');
 
+    // Keep already-generated unpaid dues in sync with the new amount
+    await applyAmountToOutstandingDues(req.user.tenant_id, config.category, config.monthly_amount);
+
     res.status(201).json(config);
   } catch (err) {
     console.error('Error creating/updating config:', err);
@@ -99,6 +120,9 @@ exports.updateConfig = async (req, res, next) => {
     if (!config) {
       return res.status(404).json({ message: 'Config not found' });
     }
+
+    // Keep already-generated unpaid dues in sync with the new amount
+    await applyAmountToOutstandingDues(req.user.tenant_id, config.category, config.monthly_amount);
 
     res.json(config);
   } catch (err) {

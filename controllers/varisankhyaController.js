@@ -71,6 +71,10 @@ exports.generateMonthlyDues = async (req, res) => {
                 // Use configured amount or fallback to default
                 const amountDue = config ? config.monthly_amount : default_amount;
 
+                // A zero due means nothing is owed (e.g. an exempt house),
+                // so mark it paid by default instead of showing as unpaid.
+                const isZeroDue = Number(amountDue) <= 0;
+
                 // Create new due
                 const varisankhya = await Varisankhya.create({
                     tenant_id,
@@ -79,7 +83,7 @@ exports.generateMonthlyDues = async (req, res) => {
                     year,
                     amount_due: amountDue,
                     amount_paid: 0,
-                    status: "unpaid",
+                    status: isZeroDue ? "paid" : "unpaid",
                 });
 
                 created++;
