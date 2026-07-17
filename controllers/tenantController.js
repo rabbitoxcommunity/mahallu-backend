@@ -363,6 +363,43 @@ exports.updateTenant = async (req, res) => {
     }
 };
 
+// Get the requesting user's own tenant org info
+exports.getMyTenant = async (req, res) => {
+    try {
+        const tenant = await Tenant.findById(req.user.tenant_id)
+            .select('name nameMalayalam address addressMalayalam regNo');
+        if (!tenant) {
+            return res.status(404).json({ message: "Tenant not found" });
+        }
+        res.json({ tenant });
+    } catch (error) {
+        console.error("Get my tenant error:", error);
+        res.status(500).json({ message: "Internal server error" });
+    }
+};
+
+// Update the requesting user's own tenant's Malayalam name/address/regNo (superAdmin only)
+exports.updateMyTenant = async (req, res) => {
+    try {
+        if (req.user.role !== 'superAdmin') {
+            return res.status(403).json({ message: "Only super admin can update organization info" });
+        }
+        const { nameMalayalam, addressMalayalam, regNo } = req.body;
+        const tenant = await Tenant.findByIdAndUpdate(
+            req.user.tenant_id,
+            { nameMalayalam, addressMalayalam, regNo },
+            { new: true, runValidators: true }
+        ).select('name nameMalayalam address addressMalayalam regNo');
+        if (!tenant) {
+            return res.status(404).json({ message: "Tenant not found" });
+        }
+        res.json({ message: "Organization info updated successfully", tenant });
+    } catch (error) {
+        console.error("Update my tenant error:", error);
+        res.status(500).json({ message: "Internal server error" });
+    }
+};
+
 // Stream the requesting user's own tenant signature image
 exports.viewSignature = async (req, res) => {
     try {

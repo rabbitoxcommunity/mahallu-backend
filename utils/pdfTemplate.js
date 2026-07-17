@@ -15,14 +15,19 @@ const fillTemplate = (tpl, data) =>
 // Reuse one headless Chromium instance across all certificate types instead
 // of paying ~1-2s browser-launch cost (and running duplicate browsers) per
 // generation.
+const LAUNCH_OPTS = {
+  headless: 'new',
+  args: ['--no-sandbox', '--disable-setuid-sandbox'],
+};
+
 let browserPromise = null;
 const getBrowser = async () => {
   if (!browserPromise) {
-    browserPromise = puppeteer.launch({ headless: 'new' });
+    browserPromise = puppeteer.launch(LAUNCH_OPTS);
   }
   const browser = await browserPromise;
   if (!browser.isConnected()) {
-    browserPromise = puppeteer.launch({ headless: 'new' });
+    browserPromise = puppeteer.launch(LAUNCH_OPTS);
     return browserPromise;
   }
   return browser;
